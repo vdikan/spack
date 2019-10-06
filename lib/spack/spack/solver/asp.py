@@ -314,7 +314,11 @@ class AspGenerator(object):
         pkgs = list(set(spack.package.possible_dependencies(*pkgs))
                     | set(pkg_names))
 
-        self.out.write(pkgutil.get_data('spack.solver', 'concretize.lp'))
+        concretize_lp = pkgutil.get_data('spack.solver', 'concretize.lp')
+        self.out.write(concretize_lp.decode("utf-8"))
+
+        # traverse all specs and packages to build dict of possible versions
+        self.build_version_dict(possible, specs)
 
         self.h1('General Constraints')
         self.compiler_defaults()
@@ -332,7 +336,8 @@ class AspGenerator(object):
                 self.spec_rules(dep)
 
         self.out.write('\n')
-        self.out.write(pkgutil.get_data('spack.solver', 'display.lp'))
+        display_lp = pkgutil.get_data('spack.solver', 'display.lp')
+        self.out.write(display_lp.decode("utf-8"))
 
 
 class ResultParser(object):
@@ -470,7 +475,7 @@ def solve(specs, dump=None, models=1):
     def colorize(string):
         color.cprint(highlight(color.cescape(string)))
 
-    with tempfile.TemporaryFile() as program:
+    with tempfile.TemporaryFile("w+") as program:
         generator = AspGenerator(program)
         generator.generate_asp_program(specs)
         program.seek(0)
@@ -483,7 +488,7 @@ def solve(specs, dump=None, models=1):
                 tty.msg('ASP program:')
             colorize(result.asp)
 
-        with tempfile.TemporaryFile() as output:
+        with tempfile.TemporaryFile("w+") as output:
             with tempfile.TemporaryFile() as warnings:
                 clingo(
                     '--models=%d' % models,
