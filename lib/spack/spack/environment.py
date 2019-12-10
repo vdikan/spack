@@ -28,9 +28,7 @@ import spack.spec
 import spack.util.spack_json as sjson
 import spack.util.spack_yaml as syaml
 import spack.config
-import spack.build_environment as build_env
 import spack.user_environment as uenv
-from spack.util.prefix import Prefix
 from spack.filesystem_view import YamlFilesystemView
 import spack.util.environment
 import spack.architecture as architecture
