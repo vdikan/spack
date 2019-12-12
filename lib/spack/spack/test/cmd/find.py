@@ -14,9 +14,12 @@ import spack.user_environment as uenv
 from spack.main import SpackCommand
 from spack.spec import Spec
 from spack.util.pattern import Bunch
+import spack.environment as ev
 
 
 find = SpackCommand('find')
+env = SpackCommand('env')
+install = SpackCommand('install')
 
 base32_alphabet = 'abcdefghijklmnopqrstuvwxyz234567'
 
@@ -315,3 +318,16 @@ def test_find_loaded(database, working_env):
     output = find('--loaded')
     expected = find()
     assert output == expected
+
+
+@pytest.mark.regression('9875')
+def test_find_prefix_in_env(mutable_mock_env_path, install_mockery, mock_fetch,
+                            mock_packages, mock_archive, config):
+    """Test `find` formats requiring concrete specs work in environments."""
+    env('create', 'test')
+    with ev.read('test'):
+        install('mpileaks')
+        find('-p')
+        find('-l')
+        find('-L')
+        # Would throw error on regression
