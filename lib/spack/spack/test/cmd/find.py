@@ -5,10 +5,12 @@
 
 import argparse
 import json
+import os
 
 import pytest
 import spack.cmd as cmd
 import spack.cmd.find
+import spack.user_environment as uenv
 from spack.main import SpackCommand
 from spack.spec import Spec
 from spack.util.pattern import Bunch
@@ -302,3 +304,14 @@ def test_find_no_sections(database, config):
 def test_find_command_basic_usage(database):
     output = find()
     assert 'mpileaks' in output
+
+
+def test_find_loaded(database, working_env):
+    output = find('--loaded', '--group')
+    assert output == ''  # 0 packages installed printed separately
+
+    os.environ[uenv.spack_loaded_hashes_var] = ':'.join(
+        [x.dag_hash() for x in spack.store.db.query()])
+    output = find('--loaded')
+    expected = find()
+    assert output == expected

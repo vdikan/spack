@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 from __future__ import print_function
+import os
 
 import llnl.util.tty as tty
 import llnl.util.tty.color as color
@@ -13,6 +14,7 @@ import spack.environment as ev
 import spack.repo
 import spack.cmd as cmd
 import spack.cmd.common.arguments as arguments
+import spack.user_environment as uenv
 from spack.util.string import plural
 from spack.database import InstallStatuses
 
@@ -80,6 +82,9 @@ def setup_parser(subparser):
         action='store_true',
         dest='variants',
         help='show variants in output (can be long)')
+    subparser.add_argument(
+        '--loaded', action='store_true',
+        help='show only packages loaded in the user environment')
     subparser.add_argument('-M', '--only-missing',
                            action='store_true',
                            dest='only_missing',
@@ -213,6 +218,10 @@ def find(parser, args):
     if args.tags:
         packages_with_tags = spack.repo.path.packages_with_tags(*args.tags)
         results = [x for x in results if x.name in packages_with_tags]
+
+    if args.loaded:
+        hashes = os.environ.get(uenv.spack_loaded_hashes_var, '').split(':')
+        results = [x for x in results if x.dag_hash() in hashes]
 
     # Display the result
     if args.json:
