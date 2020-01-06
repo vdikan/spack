@@ -597,11 +597,11 @@ class PackageBase(with_metaclass(PackageMeta, PackageViewMixin, object)):
         """
         deptype = spack.dependency.canonical_deptype(deptype)
 
-        if visited is None:
-            visited = {cls.name: set()}
+        visited = {} if visited is None else visited
+        missing = {} if missing is None else missing
+        virtuals = set() if virtuals is None else virtuals
 
-        if missing is None:
-            missing = {cls.name: set()}
+        visited.setdefault(cls.name, set())
 
         for name, conditions in cls.dependencies.items():
             # check whether this dependency could be of the type asked for
@@ -616,6 +616,7 @@ class PackageBase(with_metaclass(PackageMeta, PackageViewMixin, object)):
                     providers = spack.repo.path.providers_for(name)
                     dep_names = [spec.name for spec in providers]
                 else:
+                    visited.setdefault(cls.name, set()).add(name)
                     visited.setdefault(name, set())
                     continue
             else:
@@ -2702,13 +2703,20 @@ def possible_dependencies(*pkg_or_spec, **kwargs):
     packages = []
     for pos in pkg_or_spec:
         if isinstance(pos, PackageMeta):
-            pkg = pos
-        elif isinstance(pos, spack.spec.Spec):
-            pkg = pos.package
-        else:
-            pkg = spack.spec.Spec(pos).package
+            packages.append(pos)
+            continue
 
-        packages.append(pkg)
+        if not isinstance(pos, spack.spec.Spec):
+            pos = spack.spec.Spec(pos)
+
+        if spack.repo.path.is_virtual(pos.name):
+            packages.extend(
+                p.package_class
+                for p in spack.repo.path.providers_for(pos.name)
+            )
+            continue
+        else:
+            packages.append(pos.package_class)
 
     visited = {}
     for pkg in packages:
