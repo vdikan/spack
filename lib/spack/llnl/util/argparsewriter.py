@@ -27,15 +27,21 @@ class ArgparseWriter(argparse.HelpFormatter):
         self.level = 0
         self.out = out
 
-    def _write(self, parser, level=0):
-        """Recursively writes a parser.
+    def parse(self, parser):
+        """Parses the parser object and returns the relavent components.
 
         Parameters:
             parser (argparse.ArgumentParser): the parser
-            level (int): the current level
+
+        Returns:
+            str: the command name
+            str: the command description
+            str: the command usage
+            list: list of positional arguments
+            list: list of optional arguments
+            list: list of subcommand parsers
         """
         self.parser = parser
-        self.level = level
 
         prog = parser.prog
         description = parser.description
@@ -67,24 +73,7 @@ class ArgparseWriter(argparse.HelpFormatter):
                 optionals.append((args, help))
                 positionals.append((args, help))
 
-        self.out.write(self.format(
-            prog, description, usage, positionals, optionals, subcommands))
-
-        for subparser in subcommands:
-            self._write(subparser, level=level + 1)
-
-    def write(self, parser):
-        """Write out details about an ArgumentParser.
-
-        Args:
-            parser (argparse.ArgumentParser): the parser
-        """
-        try:
-            self._write(parser, level=0)
-        except IOError as e:
-            # swallow pipe errors
-            if e.errno != errno.EPIPE:
-                raise
+        return prog, description, usage, positionals, optionals, subcommands
 
     def format(self, prog, description, usage,
                positionals, optionals, subcommands):
@@ -105,7 +94,36 @@ class ArgparseWriter(argparse.HelpFormatter):
         Returns:
             str: the string representation of this subcommand
         """
-        pass
+        raise NotImplementedError
+
+    def _write(self, parser, level=0):
+        """Recursively writes a parser.
+
+        Parameters:
+            parser (argparse.ArgumentParser): the parser
+            level (int): the current level
+        """
+        self.level = level
+
+        args = self.parse(parser)
+        self.out.write(self.format(*args))
+
+        subcommands = args[-1]
+        for subparser in subcommands:
+            self._write(subparser, level=level + 1)
+
+    def write(self, parser):
+        """Write out details about an ArgumentParser.
+
+        Args:
+            parser (argparse.ArgumentParser): the parser
+        """
+        try:
+            self._write(parser)
+        except IOError as e:
+            # swallow pipe errors
+            if e.errno != errno.EPIPE:
+                raise
 
 
 _rst_levels = ['=', '-', '^', '~', ':', '`']
