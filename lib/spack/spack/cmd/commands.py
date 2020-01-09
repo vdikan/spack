@@ -11,7 +11,9 @@ import re
 import argparse
 
 import llnl.util.tty as tty
-from llnl.util.argparsewriter import ArgparseWriter, ArgparseRstWriter
+from llnl.util.argparsewriter import (
+    ArgparseWriter, ArgparseRstWriter, ArgparseCompletionWriter
+)
 from llnl.util.tty.colify import colify
 
 import spack.cmd
@@ -72,12 +74,41 @@ class SubcommandWriter(ArgparseWriter):
         return '    ' * self.level + prog + '\n'
 
 
-class BashCompletionWriter(ArgparseWriter):
+class BashCompletionWriter(ArgparseCompletionWriter):
     """Write argparse output as bash programmable tab completion."""
 
-    def format(self, prog, description, usage,
-               positionals, optionals, subcommands):
-        pass
+    def body(self, positionals, optionals, subcommands):
+        if positionals:
+            return """
+    if $list_options
+    then
+        {0}
+    else
+        {1}
+    fi
+""".format(self.optionals(optionals), self.positionals(positionals))
+        elif subcommands:
+            return """
+    if $list_options
+    then
+        {0}
+    else
+        {1}
+    fi
+""".format(self.optionals(optionals), self.subcommands(subcommands))
+        else:
+            return """
+    {0}
+""".format(self.optionals(optionals))
+
+    def positionals(self, positionals):
+        return 'compgen -W "{0}" -- "$cur"'.format(' '.join(positionals))
+
+    def optionals(self, optionals):
+        return 'compgen -W "{0}" -- "$cur"'.format(' '.join(optionals))
+
+    def subcommands(self, subcommands):
+        return 'compgen -W "{0}" -- "$cur"'.format(' '.join(subcommands))
 
 
 @formatter
@@ -169,12 +200,14 @@ def commands(parser, args):
         tty.die("No such file: '%s'" % args.header)
 
     # if we're updating an existing file, only write output if a command
-    # is newer than the file.
+    # or the header is newer than the file.
     if args.update:
         if os.path.exists(args.update):
             files = [
                 spack.cmd.get_module(command).__file__.rstrip('c')  # pyc -> py
                 for command in spack.cmd.all_commands()]
+            if args.header:
+                files.append(args.header)
             last_update = os.path.getmtime(args.update)
             if not any(os.path.getmtime(f) > last_update for f in files):
                 tty.msg('File is up to date: %s' % args.update)

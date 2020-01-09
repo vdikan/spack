@@ -241,3 +241,114 @@ class ArgparseRstWriter(ArgparseWriter):
                 prog, cmd.prog.replace(' ', '-'))
 
         return string + '\n'
+
+
+class ArgparseCompletionWriter(ArgparseWriter):
+    """Write argparse output as shell programmable tab completion functions."""
+
+    def format(self, prog, description, usage,
+               positionals, optionals, subcommands):
+        """Returns the string representation of a single node in the
+        parser tree.
+
+        Override this in subclasses to define how each subcommand
+        should be displayed.
+
+        Parameters:
+            prog (str): the command name
+            description (str): the command description
+            usage (str): the command usage
+            positionals (list): list of positional arguments
+            optionals (list): list of optional arguments
+            subcommands (list): list of subcommand parsers
+
+        Returns:
+            str: the string representation of this subcommand
+        """
+
+        assert optionals  # we should always at least have -h, --help
+        assert not (positionals and subcommands)  # one or the other, not both
+
+        # We only care about the arguments/flags, not the help messages
+        if positionals:
+            positionals, _ = zip(*positionals)
+        optionals, _, _ = zip(*optionals)
+        subcommands = [
+            subcommand.prog.split(' ')[-1] for subcommand in subcommands
+        ]
+
+        # Flatten lists of lists
+        optionals = [x for xx in optionals for x in xx]
+
+        return self.start_function(prog) + \
+            self.body(positionals, optionals, subcommands) + \
+            self.end_function(prog)
+
+    def start_function(self, prog):
+        """Returns the syntax needed to begin a function definition.
+
+        Parameters:
+            prog (str): the command name
+
+        Returns:
+            str: the function definition beginning
+        """
+        name = prog.replace('-', '_').replace(' ', '_')
+        return '_{0} () {{'.format(name)
+
+    def end_function(self, prog=None):
+        """Returns the syntax needed to end a function definition.
+
+        Parameters:
+            prog (str, optional): the command name
+
+        Returns:
+            str: the function definition ending
+        """
+        return '}\n\n'
+
+    def body(self, positionals, optionals, subcommands):
+        """Returns the body of the function.
+
+        Parameters:
+            positionals (list): list of positional arguments
+            optionals (list): list of optional arguments
+            subcommands (list): list of subcommand parsers
+
+        Returns:
+            str: the function body
+        """
+        return ''
+
+    def positionals(self, positionals):
+        """Returns the syntax for reporting positional arguments.
+
+        Parameters:
+            positionals (list): list of positional arguments
+
+        Returns:
+            str: the syntax for positional arguments
+        """
+        return ''
+
+    def optionals(self, optionals):
+        """Returns the syntax for reporting optional flags.
+
+        Parameters:
+            optionals (list): list of optional arguments
+
+        Returns:
+            str: the syntax for optional flags
+        """
+        return ''
+
+    def subcommands(self, subcommands):
+        """Returns the syntax for reporting subcommands.
+
+        Parameters:
+            subcommands (list): list of subparsers
+
+        Returns:
+            str: the syntax for subcommand parsers
+        """
+        return ''
