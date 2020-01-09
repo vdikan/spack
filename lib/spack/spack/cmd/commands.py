@@ -171,11 +171,11 @@ def names(args, out):
 
 
 @formatter
-def bash(parser, args):
+def bash(args, out):
     parser = spack.main.make_argument_parser()
     spack.main.add_all_commands(parser)
 
-    writer = BashCompletionWriter()
+    writer = BashCompletionWriter(out)
     writer.write(parser)
 
 
