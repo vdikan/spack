@@ -58,19 +58,19 @@ class ArgparseWriter(argparse.HelpFormatter):
         subcommands = []
         for action in actions:
             if action.option_strings:
-                args = action.option_strings
+                flags = action.option_strings
+                dest_flags = fmt._format_action_invocation(action)
                 help = self._expand_help(action) if action.help else ''
-                help = help.replace('\n', '')
-                optionals.append((args, help))
+                help = help.replace('\n', ' ')
+                optionals.append((flags, dest_flags, help))
             elif isinstance(action, argparse._SubParsersAction):
                 for subaction in action._choices_actions:
                     subparser = action._name_parser_map[subaction.dest]
                     subcommands.append(subparser)
             else:
-                args = action.dest
+                args = fmt._format_action_invocation(action)
                 help = self._expand_help(action) if action.help else ''
-                help = help.replace('\n', '')
-                optionals.append((args, help))
+                help = help.replace('\n', ' ')
                 positionals.append((args, help))
 
         return prog, description, usage, positionals, optionals, subcommands
@@ -165,8 +165,8 @@ class ArgparseRstWriter(ArgparseWriter):
 
         if optionals:
             string += self.begin_optionals()
-            for args, help in optionals:
-                string += self.optional(args, help)
+            for flags, dest_flags, help in optionals:
+                string += self.optional(dest_flags, help)
             string += self.end_optionals()
 
         if subcommands:
@@ -182,38 +182,42 @@ class ArgparseRstWriter(ArgparseWriter):
 
 {1}
 {2}
+
 """.format(prog.replace(' ', '-'), prog,
            self.rst_levels[self.level] * len(prog))
 
     def description(self, description):
-        return description + '\n'
+        return description + '\n\n'
 
     def usage(self, usage):
-        return """
+        return """\
 .. code-block:: console
 
     {0}
+
 """.format(usage)
 
     def begin_positionals(self):
-        return '\n**Positional arguments**\n'
+        return '\n**Positional arguments**\n\n'
 
     def positional(self, name, help):
-        return """
+        return """\
 {0}
   {1}
+
 """.format(name, help)
 
     def end_positionals(self):
         return ''
 
     def begin_optionals(self):
-        return '\n**Optional arguments**\n'
+        return '\n**Optional arguments**\n\n'
 
     def optional(self, opts, help):
-        return """
+        return """\
 ``{0}``
   {1}
+
 """.format(opts, help)
 
     def end_optionals(self):
@@ -222,8 +226,10 @@ class ArgparseRstWriter(ArgparseWriter):
     def begin_subcommands(self, subcommands):
         string = """
 **Subcommands**
+
 .. hlist::
    :columns: 4
+
 """
 
         for cmd in subcommands:
@@ -231,7 +237,7 @@ class ArgparseRstWriter(ArgparseWriter):
             if self.strip_root_prog:
                 prog = re.sub(r'^[^ ]* ', '', prog)
 
-            string += '   * :ref:`{0} <{1}>`'.format(
+            string += '   * :ref:`{0} <{1}>`\n'.format(
                 prog, cmd.prog.replace(' ', '-'))
 
-        return string
+        return string + '\n'
