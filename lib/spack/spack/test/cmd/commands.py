@@ -3,10 +3,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-import re
 import pytest
-
-from llnl.util.argparsewriter import ArgparseWriter
 
 import spack.cmd
 import spack.main
@@ -33,22 +30,10 @@ def test_subcommands():
     assert 'spack url parse' in out
     assert 'spack view symlink' in out
 
-    class Subcommands(ArgparseWriter):
-        def begin_command(self, prog):
-            assert prog in out
-
-    Subcommands(parser.prog).write(parser)
-
 
 def test_rst():
     """Do some simple sanity checks of the rst writer."""
-    out = commands('--format=rst')
-
-    class Subcommands(ArgparseWriter):
-        def begin_command(self, prog):
-            assert prog in out
-            assert re.sub(r' ', '-', prog) in out
-    Subcommands(parser.prog).write(parser)
+    commands('--format=rst')
 
 
 def test_rst_with_input_files(tmpdir):

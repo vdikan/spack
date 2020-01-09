@@ -17,123 +17,94 @@ class ArgparseWriter(argparse.HelpFormatter):
     """Analyzes an argparse ArgumentParser for easy generation of help."""
 
     def __init__(self, prog, out=sys.stdout):
+        """Initializes a new ArgparseWriter instance.
+
+        Parameters:
+            prog (str): the program name
+            out (file object): the file to write to
+        """
         super(ArgparseWriter, self).__init__(prog)
         self.level = 0
         self.out = out
 
-    def _write(self, parser, root=True, level=0):
+    def _write(self, parser, level=0):
+        """Recursively writes a parser.
+
+        Parameters:
+            parser (argparse.ArgumentParser): the parser
+            level (int): the current level
+        """
         self.parser = parser
         self.level = level
+
+        prog = parser.prog
+        description = parser.description
+
+        fmt = self.parser._get_formatter()
         actions = parser._actions
+        groups = parser._mutually_exclusive_groups
+        usage = fmt._format_usage(None, actions, groups, '').strip()
 
-        # allow root level to be flattened with rest of commands
-        if type(root) == int:
-            self.level = root
-            root = True
-
-        # go through actions and split them into optionals, positionals,
+        # Go through actions and split them into optionals, positionals,
         # and subcommands
         optionals = []
         positionals = []
         subcommands = []
         for action in actions:
             if action.option_strings:
-                optionals.append(action)
+                args = action.option_strings
+                help = self._expand_help(action) if action.help else ''
+                help = help.replace('\n', '')
+                optionals.append((args, help))
             elif isinstance(action, argparse._SubParsersAction):
                 for subaction in action._choices_actions:
                     subparser = action._name_parser_map[subaction.dest]
                     subcommands.append(subparser)
             else:
-                positionals.append(action)
-
-        groups = parser._mutually_exclusive_groups
-        fmt = parser._get_formatter()
-        description = parser.description
-
-        def action_group(function, actions):
-            for action in actions:
-                arg = fmt._format_action_invocation(action)
+                args = action.dest
                 help = self._expand_help(action) if action.help else ''
-                function(arg, re.sub('\n', ' ', help))
+                help = help.replace('\n', '')
+                optionals.append((args, help))
+                positionals.append((args, help))
 
-        if root:
-            self.begin_command(parser.prog)
+        self.out.write(self.format(
+            prog, description, usage, positionals, optionals, subcommands))
 
-            if description:
-                self.description(parser.description)
+        for subparser in subcommands:
+            self._write(subparser, level=level + 1)
 
-            usage = fmt._format_usage(None, actions, groups, '').strip()
-            self.usage(usage)
-
-            if positionals:
-                self.begin_positionals()
-                action_group(self.positional, positionals)
-                self.end_positionals()
-
-            if optionals:
-                self.begin_optionals()
-                action_group(self.optional, optionals)
-                self.end_optionals()
-
-        if subcommands:
-            self.begin_subcommands(subcommands)
-            for subparser in subcommands:
-                self._write(subparser, root=True, level=level + 1)
-            self.end_subcommands(subcommands)
-
-        if root:
-            self.end_command(parser.prog)
-
-    def write(self, parser, root=True):
+    def write(self, parser):
         """Write out details about an ArgumentParser.
 
         Args:
-            parser (ArgumentParser): an ``argparse`` parser
-            root (bool or int): if bool, whether to include the root parser;
-                or ``1`` to flatten the root parser with first-level
-                subcommands
+            parser (argparse.ArgumentParser): the parser
         """
         try:
-            self._write(parser, root, level=0)
+            self._write(parser, level=0)
         except IOError as e:
             # swallow pipe errors
             if e.errno != errno.EPIPE:
                 raise
 
-    def begin_command(self, prog):
-        pass
+    def format(self, prog, description, usage,
+               positionals, optionals, subcommands):
+        """Returns the string representation of a single node in the
+        parser tree.
 
-    def end_command(self, prog):
-        pass
+        Override this in subclasses to define how each subcommand
+        should be displayed.
 
-    def description(self, description):
-        pass
+        Parameters:
+            prog (str): the command name
+            description (str): the command description
+            usage (str): the command usage
+            positionals (list): list of positional arguments
+            optionals (list): list of optional arguments
+            subcommands (list): list of subcommand parsers
 
-    def usage(self, usage):
-        pass
-
-    def begin_positionals(self):
-        pass
-
-    def positional(self, name, help):
-        pass
-
-    def end_positionals(self):
-        pass
-
-    def begin_optionals(self):
-        pass
-
-    def optional(self, option, help):
-        pass
-
-    def end_optionals(self):
-        pass
-
-    def begin_subcommands(self, subcommands):
-        pass
-
-    def end_subcommands(self, subcommands):
+        Returns:
+            str: the string representation of this subcommand
+        """
         pass
 
 
@@ -147,7 +118,7 @@ class ArgparseRstWriter(ArgparseWriter):
                  strip_root_prog=True):
         """Create a new ArgparseRstWriter.
 
-        Args:
+        Parameters:
             prog (str): program name
             out (file object): file to write to
             rst_levels (list of str): list of characters
@@ -159,51 +130,90 @@ class ArgparseRstWriter(ArgparseWriter):
         self.rst_levels = rst_levels
         self.strip_root_prog = strip_root_prog
 
-    def line(self, string=''):
-        self.out.write('%s\n' % string)
+    def format(self, prog, description, usage,
+               positionals, optionals, subcommands):
+        string = self.begin_command(prog)
+
+        if description:
+            string += self.description(description)
+
+        string += self.usage(usage)
+
+        if positionals:
+            string += self.begin_positionals()
+            for args, help in positionals:
+                string += self.positional(args, help)
+            string += self.end_positionals()
+
+        if optionals:
+            string += self.begin_optionals()
+            for args, help in optionals:
+                string += self.optional(args, help)
+            string += self.end_optionals()
+
+        if subcommands:
+            string += self.begin_subcommands(subcommands)
+
+        return string
 
     def begin_command(self, prog):
-        self.line()
-        self.line('----')
-        self.line()
-        self.line('.. _%s:\n' % prog.replace(' ', '-'))
-        self.line('%s' % prog)
-        self.line(self.rst_levels[self.level] * len(prog) + '\n')
+        return """
+----
+
+.. _{0}:
+
+{1}
+{2}
+""".format(prog.replace(' ', '-'), prog,
+           self.rst_levels[self.level] * len(prog))
 
     def description(self, description):
-        self.line('%s\n' % description)
+        return description + '\n'
 
     def usage(self, usage):
-        self.line('.. code-block:: console\n')
-        self.line('    %s\n' % usage)
+        return """
+.. code-block:: console
+
+    {0}
+""".format(usage)
 
     def begin_positionals(self):
-        self.line()
-        self.line('**Positional arguments**\n')
+        return '\n**Positional arguments**\n'
 
     def positional(self, name, help):
-        self.line(name)
-        self.line('  %s\n' % help)
+        return """
+{0}
+  {1}
+""".format(name, help)
+
+    def end_positionals(self):
+        return ''
 
     def begin_optionals(self):
-        self.line()
-        self.line('**Optional arguments**\n')
+        return '\n**Optional arguments**\n'
 
     def optional(self, opts, help):
-        self.line('``%s``' % opts)
-        self.line('  %s\n' % help)
+        return """
+``{0}``
+  {1}
+""".format(opts, help)
+
+    def end_optionals(self):
+        return ''
 
     def begin_subcommands(self, subcommands):
-        self.line()
-        self.line('**Subcommands**\n')
-        self.line('.. hlist::')
-        self.line('   :columns: 4\n')
+        string = """
+**Subcommands**
+.. hlist::
+   :columns: 4
+"""
 
         for cmd in subcommands:
             prog = cmd.prog
             if self.strip_root_prog:
                 prog = re.sub(r'^[^ ]* ', '', prog)
 
-            self.line('   * :ref:`%s <%s>`'
-                      % (prog, cmd.prog.replace(' ', '-')))
-        self.line()
+            string += '   * :ref:`{0} <{1}>`'.format(
+                prog, cmd.prog.replace(' ', '-'))
+
+        return string

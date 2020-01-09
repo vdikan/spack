@@ -57,55 +57,27 @@ class SpackArgparseRstWriter(ArgparseRstWriter):
         self.documented = documented_commands if documented_commands else []
 
     def usage(self, *args):
-        super(SpackArgparseRstWriter, self).usage(*args)
-        cmd = re.sub(' ', '-', self.parser.prog)
+        string = super(SpackArgparseRstWriter, self).usage(*args)
+
+        cmd = self.parser.prog.replace(' ', '-')
         if cmd in self.documented:
-            self.line()
-            self.line(':ref:`More documentation <cmd-%s>`' % cmd)
+            string += '\n:ref:`More documentation <cmd-{0}>`\n'.format(cmd)
+
+        return string
 
 
 class SubcommandWriter(ArgparseWriter):
-    def begin_command(self, prog):
-        self.out.write('    ' * self.level + prog)
-        self.out.write('\n')
+    def format(self, prog, description, usage,
+               positionals, optionals, subcommands):
+        return '    ' * self.level + prog + '\n'
 
 
 class BashCompletionWriter(ArgparseWriter):
     """Write argparse output as bash programmable tab completion."""
 
-    def begin_command(self, prog):
-        self.out.write('\n')
-        self.out.write('function _{0} {{\n'.format(
-            prog.replace(' ', '_').replace('-', '_')))
-
-    def begin_positionals(self):
-        self.out.write('    if $positional\n')
-        self.out.write('    then\n')
-        self.out.write('        ')
-
-    def positional(self, name, help):
-        self.out.write(name + ' ')
-
-    def end_positionals(self):
-        self.out.write('\n')
-
-    def begin_optionals(self):
-        self.out.write('    else\n')
-        self.out.write('        SPACK_COMPREPLY="')
-
-    def optional(self, opts, help):
-        # Get rid of choice lists like {true false}
-        opts = re.sub(r'\{[^}]*\}', '', opts).strip()
-
-        # Get rid of metavars (which do not start with `-`)
-        opts = [opt for opt in re.split(r',?\s+', opts) if opt.startswith('-')]
-
-        self.out.write(' '.join(opts) + ' ')
-
-    def end_optionals(self):
-        self.out.write('\b"\n')
-        self.out.write('    fi\n')
-        self.out.write('}\n')
+    def format(self, prog, description, usage,
+               positionals, optionals, subcommands):
+        pass
 
 
 @formatter
@@ -164,7 +136,7 @@ def rst(args, out):
 
     # print sections for each command and subcommand
     writer = SpackArgparseRstWriter(parser.prog, documented_commands, out)
-    writer.write(parser, root=1)
+    writer.write(parser)
 
 
 @formatter
