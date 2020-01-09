@@ -10,10 +10,14 @@ import errno
 import sys
 
 
+# NOTE: The only reason we subclass argparse.HelpFormatter is to get access
+# to self._expand_help(), ArgparseWriter is not intended to be used as a
+# formatter_class.
 class ArgparseWriter(argparse.HelpFormatter):
     """Analyzes an argparse ArgumentParser for easy generation of help."""
-    def __init__(self, out=sys.stdout):
-        super(ArgparseWriter, self).__init__(out)
+
+    def __init__(self, prog, out=sys.stdout):
+        super(ArgparseWriter, self).__init__(prog)
         self.level = 0
         self.out = out
 
@@ -139,18 +143,19 @@ _rst_levels = ['=', '-', '^', '~', ':', '`']
 class ArgparseRstWriter(ArgparseWriter):
     """Write argparse output as rst sections."""
 
-    def __init__(self, out=sys.stdout, rst_levels=_rst_levels,
+    def __init__(self, prog, out=sys.stdout, rst_levels=_rst_levels,
                  strip_root_prog=True):
         """Create a new ArgparseRstWriter.
 
         Args:
+            prog (str): program name
             out (file object): file to write to
             rst_levels (list of str): list of characters
                 for rst section headings
             strip_root_prog (bool): if ``True``, strip the base command name
                 from subcommands in output
         """
-        super(ArgparseRstWriter, self).__init__(out)
+        super(ArgparseRstWriter, self).__init__(prog, out)
         self.rst_levels = rst_levels
         self.strip_root_prog = strip_root_prog
 

@@ -52,8 +52,8 @@ def setup_parser(subparser):
 class SpackArgparseRstWriter(ArgparseRstWriter):
     """RST writer tailored for spack documentation."""
 
-    def __init__(self, documented_commands, out=sys.stdout):
-        super(SpackArgparseRstWriter, self).__init__(out)
+    def __init__(self, prog, documented_commands, out=sys.stdout):
+        super(SpackArgparseRstWriter, self).__init__(prog, out)
         self.documented = documented_commands if documented_commands else []
 
     def usage(self, *args):
@@ -112,7 +112,8 @@ class BashCompletionWriter(ArgparseWriter):
 def subcommands(args, out):
     parser = spack.main.make_argument_parser()
     spack.main.add_all_commands(parser)
-    SubcommandWriter(out).write(parser)
+    writer = SubcommandWriter(parser.prog, out)
+    writer.write(parser)
 
 
 def rst_index(out):
@@ -162,7 +163,8 @@ def rst(args, out):
     out.write('\n')
 
     # print sections for each command and subcommand
-    SpackArgparseRstWriter(documented_commands, out).write(parser, root=1)
+    writer = SpackArgparseRstWriter(parser.prog, documented_commands, out)
+    writer.write(parser, root=1)
 
 
 @formatter
@@ -175,7 +177,7 @@ def bash(args, out):
     parser = spack.main.make_argument_parser()
     spack.main.add_all_commands(parser)
 
-    writer = BashCompletionWriter(out)
+    writer = BashCompletionWriter(parser.prog, out)
     writer.write(parser)
 
 

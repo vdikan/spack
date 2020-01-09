@@ -37,7 +37,7 @@ def test_subcommands():
         def begin_command(self, prog):
             assert prog in out
 
-    Subcommands().write(parser)
+    Subcommands(parser.prog).write(parser)
 
 
 def test_rst():
@@ -48,7 +48,7 @@ def test_rst():
         def begin_command(self, prog):
             assert prog in out
             assert re.sub(r' ', '-', prog) in out
-    Subcommands().write(parser)
+    Subcommands(parser.prog).write(parser)
 
 
 def test_rst_with_input_files(tmpdir):
