@@ -16,22 +16,26 @@ import sys
 class ArgparseWriter(argparse.HelpFormatter):
     """Analyzes an argparse ArgumentParser for easy generation of help."""
 
-    def __init__(self, prog, out=sys.stdout):
+    def __init__(self, prog, out=sys.stdout, aliases=False):
         """Initializes a new ArgparseWriter instance.
 
         Parameters:
             prog (str): the program name
             out (file object): the file to write to
+            aliases (bool): whether or not to include subparsers for aliases
         """
         super(ArgparseWriter, self).__init__(prog)
         self.level = 0
+        self.prog = prog
         self.out = out
+        self.aliases = aliases
 
-    def parse(self, parser):
+    def parse(self, parser, prog):
         """Parses the parser object and returns the relavent components.
 
         Parameters:
             parser (argparse.ArgumentParser): the parser
+            prog (str): the command name
 
         Returns:
             str: the command name
@@ -43,10 +47,12 @@ class ArgparseWriter(argparse.HelpFormatter):
         """
         self.parser = parser
 
-        prog = parser.prog
+        split_prog = parser.prog.split(' ')
+        split_prog[-1] = prog
+        prog = ' '.join(split_prog)
         description = parser.description
 
-        fmt = self.parser._get_formatter()
+        fmt = parser._get_formatter()
         actions = parser._actions
         groups = parser._mutually_exclusive_groups
         usage = fmt._format_usage(None, actions, groups, '').strip()
@@ -66,7 +72,16 @@ class ArgparseWriter(argparse.HelpFormatter):
             elif isinstance(action, argparse._SubParsersAction):
                 for subaction in action._choices_actions:
                     subparser = action._name_parser_map[subaction.dest]
-                    subcommands.append(subparser)
+                    subcommands.append((subparser, subaction.dest))
+
+                    # Look for aliases of the form 'name (alias, ...)'
+                    if self.aliases:
+                        match = re.match(r'(.*) \((.*)\)', subaction.metavar)
+                        if match:
+                            aliases = match.group(2).split(', ')
+                            for alias in aliases:
+                                subparser = action._name_parser_map[alias]
+                                subcommands.append((subparser, alias))
             else:
                 args = fmt._format_action_invocation(action)
                 help = self._expand_help(action) if action.help else ''
@@ -96,21 +111,22 @@ class ArgparseWriter(argparse.HelpFormatter):
         """
         raise NotImplementedError
 
-    def _write(self, parser, level=0):
+    def _write(self, parser, prog, level=0):
         """Recursively writes a parser.
 
         Parameters:
             parser (argparse.ArgumentParser): the parser
+            prog (str): the command name
             level (int): the current level
         """
         self.level = level
 
-        args = self.parse(parser)
+        args = self.parse(parser, prog)
         self.out.write(self.format(*args))
 
         subcommands = args[-1]
-        for subparser in subcommands:
-            self._write(subparser, level=level + 1)
+        for subparser, prog in subcommands:
+            self._write(subparser, prog, level=level + 1)
 
     def write(self, parser):
         """Write out details about an ArgumentParser.
@@ -119,7 +135,7 @@ class ArgparseWriter(argparse.HelpFormatter):
             parser (argparse.ArgumentParser): the parser
         """
         try:
-            self._write(parser)
+            self._write(parser, self.prog)
         except IOError as e:
             # swallow pipe errors
             if e.errno != errno.EPIPE:
@@ -132,8 +148,7 @@ _rst_levels = ['=', '-', '^', '~', ':', '`']
 class ArgparseRstWriter(ArgparseWriter):
     """Write argparse output as rst sections."""
 
-    def __init__(self, prog, out=sys.stdout, rst_levels=_rst_levels,
-                 strip_root_prog=True):
+    def __init__(self, prog, out=sys.stdout, rst_levels=_rst_levels):
         """Create a new ArgparseRstWriter.
 
         Parameters:
@@ -141,12 +156,9 @@ class ArgparseRstWriter(ArgparseWriter):
             out (file object): file to write to
             rst_levels (list of str): list of characters
                 for rst section headings
-            strip_root_prog (bool): if ``True``, strip the base command name
-                from subcommands in output
         """
         super(ArgparseRstWriter, self).__init__(prog, out)
         self.rst_levels = rst_levels
-        self.strip_root_prog = strip_root_prog
 
     def format(self, prog, description, usage,
                positionals, optionals, subcommands):
@@ -232,19 +244,26 @@ class ArgparseRstWriter(ArgparseWriter):
 
 """
 
-        for cmd in subcommands:
+        for cmd, _ in subcommands:
             prog = cmd.prog
-            if self.strip_root_prog:
-                prog = re.sub(r'^[^ ]* ', '', prog)
-
             string += '   * :ref:`{0} <{1}>`\n'.format(
-                prog, cmd.prog.replace(' ', '-'))
+                prog, prog.replace(' ', '-'))
 
         return string + '\n'
 
 
 class ArgparseCompletionWriter(ArgparseWriter):
     """Write argparse output as shell programmable tab completion functions."""
+
+    def __init__(self, prog, out=sys.stdout, aliases=True):
+        """Initializes a new ArgparseWriter instance.
+
+        Parameters:
+            prog (str): the program name
+            out (file object): the file to write to
+            aliases (bool): whether or not to include subparsers for aliases
+        """
+        super(ArgparseCompletionWriter, self).__init__(prog, out, aliases)
 
     def format(self, prog, description, usage,
                positionals, optionals, subcommands):
@@ -273,9 +292,8 @@ class ArgparseCompletionWriter(ArgparseWriter):
         if positionals:
             positionals, _ = zip(*positionals)
         optionals, _, _ = zip(*optionals)
-        subcommands = [
-            subcommand.prog.split(' ')[-1] for subcommand in subcommands
-        ]
+        if subcommands:
+            _, subcommands = zip(*subcommands)
 
         # Flatten lists of lists
         optionals = [x for xx in optionals for x in xx]
@@ -346,7 +364,7 @@ class ArgparseCompletionWriter(ArgparseWriter):
         """Returns the syntax for reporting subcommands.
 
         Parameters:
-            subcommands (list): list of subparsers
+            subcommands (list): list of subcommand parsers
 
         Returns:
             str: the syntax for subcommand parsers
