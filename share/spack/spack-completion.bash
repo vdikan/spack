@@ -206,7 +206,7 @@ _spack_activate () {
     then
         compgen -W "-h --help -f --force -v --view" -- "$cur"
     else
-        compgen -W "spec" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -228,7 +228,7 @@ _spack_blame () {
     then
         compgen -W "-h --help -t --time -p --percent -g --git" -- "$cur"
     else
-        compgen -W "package_name" -- "$cur"
+        compgen -W "package_or_file" -- "$cur"
     fi
 }
 
@@ -241,7 +241,7 @@ _spack_build () {
     then
         compgen -W "-h --help -v --verbose" -- "$cur"
     else
-        compgen -W "package" -- "$cur"
+        compgen -W "spec" -- "$cur"
     fi
 }
 
@@ -268,7 +268,7 @@ _spack_buildcache_create () {
     then
         compgen -W "-h --help -r --rel -f --force -u --unsigned -a --allow-root -k --key -d --directory --no-rebuild-index -y --spec-yaml --no-deps" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "specs" -- "$cur"
     fi
 }
 
@@ -277,7 +277,7 @@ _spack_buildcache_install () {
     then
         compgen -W "-h --help -f --force -m --multiple -a --allow-root -u --unsigned" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "specs" -- "$cur"
     fi
 }
 
@@ -286,7 +286,7 @@ _spack_buildcache_list () {
     then
         compgen -W "-h --help -l --long -L --very-long -v --variants -f --force" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "specs" -- "$cur"
     fi
 }
 
@@ -299,7 +299,7 @@ _spack_buildcache_preview () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "installed_specs" -- "$cur"
     fi
 }
 
@@ -452,7 +452,7 @@ _spack_config_get () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "SECTION" -- "$cur"
+        compgen -W "section" -- "$cur"
     fi
 }
 
@@ -461,7 +461,7 @@ _spack_config_blame () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "SECTION" -- "$cur"
+        compgen -W "section" -- "$cur"
     fi
 }
 
@@ -470,7 +470,7 @@ _spack_config_edit () {
     then
         compgen -W "-h --help --print-file" -- "$cur"
     else
-        compgen -W "SECTION" -- "$cur"
+        compgen -W "section" -- "$cur"
     fi
 }
 
@@ -479,7 +479,7 @@ _spack_configure () {
     then
         compgen -W "-h --help -v --verbose" -- "$cur"
     else
-        compgen -W "package" -- "$cur"
+        compgen -W "spec" -- "$cur"
     fi
 }
 
@@ -497,7 +497,7 @@ _spack_deactivate () {
     then
         compgen -W "-h --help -f --force -v --view -a --all" -- "$cur"
     else
-        compgen -W "spec" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -568,7 +568,7 @@ _spack_edit () {
     then
         compgen -W "-h --help -b --build-system -c --command -d --docs -t --test -m --module -r --repo -N --namespace" -- "$cur"
     else
-        compgen -W "name" -- "$cur"
+        compgen -W "package" -- "$cur"
     fi
 }
 
@@ -599,7 +599,7 @@ _spack_env_create () {
     then
         compgen -W "-h --help -d --dir --without-view --with-view" -- "$cur"
     else
-        compgen -W "ENV envfile" -- "$cur"
+        compgen -W "env envfile" -- "$cur"
     fi
 }
 
@@ -608,7 +608,7 @@ _spack_env_remove () {
     then
         compgen -W "-h --help -y --yes-to-all" -- "$cur"
     else
-        compgen -W "ENV" -- "$cur"
+        compgen -W "env" -- "$cur"
     fi
 }
 
@@ -617,7 +617,7 @@ _spack_env_rm () {
     then
         compgen -W "-h --help -y --yes-to-all" -- "$cur"
     else
-        compgen -W "ENV" -- "$cur"
+        compgen -W "env" -- "$cur"
     fi
 }
 
@@ -660,7 +660,7 @@ _spack_extensions () {
     then
         compgen -W "-h --help -l --long -L --very-long -d --deps -p --paths -s --show -v --view" -- "$cur"
     else
-        compgen -W "spec" -- "$cur"
+        compgen -W "extendable" -- "$cur"
     fi
 }
 
@@ -669,7 +669,7 @@ _spack_fetch () {
     then
         compgen -W "-h --help -n --no-checksum -m --missing -D --dependencies" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "specs" -- "$cur"
     fi
 }
 
@@ -678,7 +678,7 @@ _spack_find () {
     then
         compgen -W "-h --help --format --json -d --deps -p --paths --groups --no-groups -l --long -L --very-long -t --tags -c --show-concretized -f --show-flags --show-full-compiler -x --explicit -X --implicit -u --unknown -m --missing -v --variants -M --only-missing --deprecated --only-deprecated -N --namespace --start-date --end-date" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_specs" -- "$cur"
     fi
 }
 
@@ -736,7 +736,7 @@ _spack_gpg_sign () {
     then
         compgen -W "-h --help --output --key --clearsign" -- "$cur"
     else
-        compgen -W "package" -- "$cur"
+        compgen -W "spec" -- "$cur"
     fi
 }
 
@@ -789,7 +789,7 @@ _spack_info () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "PACKAGE" -- "$cur"
+        compgen -W "package" -- "$cur"
     fi
 }
 
@@ -798,7 +798,7 @@ _spack_install () {
     then
         compgen -W "-h --help --only -u --until -j --jobs --overwrite --keep-prefix --keep-stage --dont-restage --use-cache --no-cache --cache-only --show-log-on-error --source -n --no-checksum -v --verbose --fake --only-concrete -f --file --clean --dirty --test --run-tests --log-format --log-file --help-cdash --cdash-upload-url --cdash-build --cdash-site --cdash-track --cdash-buildstamp -y --yes-to-all" -- "$cur"
     else
-        compgen -W "package" -- "$cur"
+        compgen -W "spec" -- "$cur"
     fi
 }
 
@@ -860,7 +860,7 @@ _spack_maintainers () {
     then
         compgen -W "-h --help --maintained --unmaintained -a --all --by-user" -- "$cur"
     else
-        compgen -W "pkg_or_user" -- "$cur"
+        compgen -W "package_or_user" -- "$cur"
     fi
 }
 

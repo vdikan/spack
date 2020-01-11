@@ -103,7 +103,7 @@ def setup_parser(subparser):
         '--end-date', help='latest date of installation [YYYY-MM-DD]'
     )
 
-    arguments.add_common_arguments(subparser, ['constraint'])
+    arguments.add_common_arguments(subparser, ['installed_specs'])
 
 
 def query_arguments(args):
@@ -209,9 +209,9 @@ def find(parser, args):
         args.groups = not args.format
 
     # Exit early with an error code if no package matches the constraint
-    if not results and args.constraint:
+    if not results and args.specs:
         msg = "No package matches the query: {0}"
-        msg = msg.format(' '.join(args.constraint))
+        msg = msg.format(' '.join(args.specs))
         tty.msg(msg)
         return 1
 

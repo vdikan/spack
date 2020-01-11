@@ -27,14 +27,14 @@ def setup_parser(subparser):
         '--scope', choices=scopes, metavar=scopes_metavar,
         help="configuration scope to read/modify")
 
-    sp = subparser.add_subparsers(metavar='SUBCOMMAND', dest='config_command')
+    sp = subparser.add_subparsers(metavar='subcommand', dest='config_command')
 
     get_parser = sp.add_parser('get', help='print configuration values')
     get_parser.add_argument('section',
                             help="configuration section to print. "
                                  "options: %(choices)s",
                             nargs='?',
-                            metavar='SECTION',
+                            metavar='section',
                             choices=spack.config.section_schemas)
 
     blame_parser = sp.add_parser(
@@ -42,14 +42,14 @@ def setup_parser(subparser):
     blame_parser.add_argument('section',
                               help="configuration section to print. "
                               "options: %(choices)s",
-                              metavar='SECTION',
+                              metavar='section',
                               choices=spack.config.section_schemas)
 
     edit_parser = sp.add_parser('edit', help='edit configuration file')
     edit_parser.add_argument('section',
                              help="configuration section to edit. "
                                   "options: %(choices)s",
-                             metavar='SECTION',
+                             metavar='section',
                              nargs='?',
                              choices=spack.config.section_schemas)
     edit_parser.add_argument(

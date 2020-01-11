@@ -120,7 +120,7 @@ class SetParallelJobs(argparse.Action):
 
 
 class DeptypeAction(argparse.Action):
-    """Creates a tuple of valid dependency tpyes from a deptype argument."""
+    """Creates a tuple of valid dependency types from a deptype argument."""
     def __call__(self, parser, namespace, values, option_string=None):
         deptype = dep.all_deptypes
         if values:
@@ -137,6 +137,46 @@ def constraint():
     return Args(
         'constraint', nargs=argparse.REMAINDER, action=ConstraintAction,
         help='constraint to select a subset of installed packages')
+
+
+@arg
+def package():
+    return Args('package', help='package name')
+
+
+@arg
+def packages():
+    return Args(
+        'packages', nargs='+', help='one or more package names',
+        metavar='package')
+
+
+# Specs must use `nargs=argparse.REMAINDER` because a single spec can
+# contain spaces, and contain variants like '-mpi' that argparse thinks
+# are a collection of optional flags.
+@arg
+def spec():
+    return Args('spec', nargs=argparse.REMAINDER, help='package spec')
+
+
+@arg
+def specs():
+    return Args(
+        'specs', nargs=argparse.REMAINDER, help='one or more package specs')
+
+
+@arg
+def installed_spec():
+    return Args(
+        'spec', nargs=argparse.REMAINDER, help='installed package spec',
+        metavar='installed_spec')
+
+
+@arg
+def installed_specs():
+    return Args(
+        'specs', nargs=argparse.REMAINDER,
+        help='one or more installed package specs', metavar='installed_specs')
 
 
 @arg

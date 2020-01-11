@@ -122,11 +122,6 @@ the dependencies"""
     cd_group = subparser.add_mutually_exclusive_group()
     arguments.add_common_arguments(cd_group, ['clean', 'dirty'])
 
-    subparser.add_argument(
-        'package',
-        nargs=argparse.REMAINDER,
-        help="spec of the package to install"
-    )
     testing = subparser.add_mutually_exclusive_group()
     testing.add_argument(
         '--test', default=None,
@@ -157,7 +152,7 @@ packages. If neither are chosen, don't run tests for any packages."""
         help="Show usage instructions for CDash reporting"
     )
     add_cdash_args(subparser, False)
-    arguments.add_common_arguments(subparser, ['yes_to_all'])
+    arguments.add_common_arguments(subparser, ['yes_to_all', 'spec'])
 
 
 def add_cdash_args(subparser, add_help):
