@@ -253,7 +253,7 @@ environment variables:
         parser.print_help()
         return
 
-    if not args.package and not args.specfiles:
+    if not args.spec and not args.specfiles:
         # if there are no args but an active environment or spack.yaml file
         # then install the packages from it.
         env = ev.get_env(args, 'install')
@@ -288,7 +288,7 @@ environment variables:
     if args.log_file:
         reporter.filename = args.log_file
 
-    abstract_specs = spack.cmd.parse_specs(args.package)
+    abstract_specs = spack.cmd.parse_specs(args.spec)
     tests = False
     if args.test == 'all' or args.run_tests:
         tests = True
@@ -298,7 +298,7 @@ environment variables:
 
     try:
         specs = spack.cmd.parse_specs(
-            args.package, concretize=True, tests=tests)
+            args.spec, concretize=True, tests=tests)
     except SpackError as e:
         tty.debug(e)
         reporter.concretization_report(e.message)
