@@ -39,7 +39,7 @@ def setup_parser(subparser):
         action='store_true'
     )
     arguments.add_common_arguments(
-        refresh_parser, ['constraint', 'yes_to_all']
+        refresh_parser, ['installed_spec', 'yes_to_all']
     )
 
     find_parser = sp.add_parser('find', help='find module files for packages')
@@ -49,12 +49,12 @@ def setup_parser(subparser):
         action='store_true'
     )
     arguments.add_common_arguments(
-        find_parser, ['constraint', 'recurse_dependencies']
+        find_parser, ['installed_spec', 'recurse_dependencies']
     )
 
     rm_parser = sp.add_parser('rm', help='remove module files')
     arguments.add_common_arguments(
-        rm_parser, ['constraint', 'yes_to_all']
+        rm_parser, ['installed_spec', 'yes_to_all']
     )
 
     loads_parser = sp.add_parser(
@@ -62,7 +62,7 @@ def setup_parser(subparser):
         help='prompt the list of modules associated with a constraint'
     )
     add_loads_arguments(loads_parser)
-    arguments.add_common_arguments(loads_parser, ['constraint'])
+    arguments.add_common_arguments(loads_parser, ['installed_spec'])
 
     return sp
 

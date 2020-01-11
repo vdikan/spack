@@ -887,7 +887,7 @@ _spack_mirror_add () {
     then
         compgen -W "-h --help --scope" -- "$cur"
     else
-        compgen -W "name url" -- "$cur"
+        compgen -W "mirror url" -- "$cur"
     fi
 }
 
@@ -896,7 +896,7 @@ _spack_mirror_remove () {
     then
         compgen -W "-h --help --scope" -- "$cur"
     else
-        compgen -W "name" -- "$cur"
+        compgen -W "mirror" -- "$cur"
     fi
 }
 
@@ -905,7 +905,7 @@ _spack_mirror_rm () {
     then
         compgen -W "-h --help --scope" -- "$cur"
     else
-        compgen -W "name" -- "$cur"
+        compgen -W "mirror" -- "$cur"
     fi
 }
 
@@ -914,7 +914,7 @@ _spack_mirror_set_url () {
     then
         compgen -W "-h --help --push --scope" -- "$cur"
     else
-        compgen -W "name url" -- "$cur"
+        compgen -W "mirror url" -- "$cur"
     fi
 }
 
@@ -945,7 +945,7 @@ _spack_module_lmod_refresh () {
     then
         compgen -W "-h --help --delete-tree --upstream-modules -y --yes-to-all" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -954,7 +954,7 @@ _spack_module_lmod_find () {
     then
         compgen -W "-h --help --full-path -r --dependencies" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -963,7 +963,7 @@ _spack_module_lmod_rm () {
     then
         compgen -W "-h --help -y --yes-to-all" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -972,7 +972,7 @@ _spack_module_lmod_loads () {
     then
         compgen -W "-h --help --input-only -p --prefix -x --exclude -r --dependencies" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -981,7 +981,7 @@ _spack_module_lmod_setdefault () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -999,7 +999,7 @@ _spack_module_tcl_refresh () {
     then
         compgen -W "-h --help --delete-tree --upstream-modules -y --yes-to-all" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -1008,7 +1008,7 @@ _spack_module_tcl_find () {
     then
         compgen -W "-h --help --full-path -r --dependencies" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -1017,7 +1017,7 @@ _spack_module_tcl_rm () {
     then
         compgen -W "-h --help -y --yes-to-all" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -1026,7 +1026,7 @@ _spack_module_tcl_loads () {
     then
         compgen -W "-h --help --input-only -p --prefix -x --exclude -r --dependencies" -- "$cur"
     else
-        compgen -W "constraint" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -1035,7 +1035,7 @@ _spack_patch () {
     then
         compgen -W "-h --help -n --no-checksum" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "specs" -- "$cur"
     fi
 }
 
@@ -1053,7 +1053,7 @@ _spack_pkg_add () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "package" -- "$cur"
     fi
 }
 
@@ -1191,7 +1191,7 @@ _spack_repo_remove () {
     then
         compgen -W "-h --help --scope" -- "$cur"
     else
-        compgen -W "path_or_namespace" -- "$cur"
+        compgen -W "namespace_or_path" -- "$cur"
     fi
 }
 
@@ -1200,7 +1200,7 @@ _spack_repo_rm () {
     then
         compgen -W "-h --help --scope" -- "$cur"
     else
-        compgen -W "path_or_namespace" -- "$cur"
+        compgen -W "namespace_or_path" -- "$cur"
     fi
 }
 
@@ -1231,7 +1231,7 @@ _spack_restage () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "specs" -- "$cur"
     fi
 }
 
@@ -1276,7 +1276,7 @@ _spack_uninstall () {
     then
         compgen -W "-h --help -f --force -R --dependents -y --yes-to-all -a --all" -- "$cur"
     else
-        compgen -W "packages" -- "$cur"
+        compgen -W "installed_specs" -- "$cur"
     fi
 }
 
@@ -1341,7 +1341,7 @@ _spack_verify () {
     then
         compgen -W "-h --help -l --local -j --json -a --all -s --specs -f --files" -- "$cur"
     else
-        compgen -W "files_or_specs" -- "$cur"
+        compgen -W "specs_or_files" -- "$cur"
     fi
 }
 
@@ -1350,7 +1350,7 @@ _spack_versions () {
     then
         compgen -W "-h --help -s --safe-only" -- "$cur"
     else
-        compgen -W "PACKAGE" -- "$cur"
+        compgen -W "package" -- "$cur"
     fi
 }
 

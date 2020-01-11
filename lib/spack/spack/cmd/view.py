@@ -41,6 +41,7 @@ from llnl.util.tty.color import colorize
 
 import spack.environment as ev
 import spack.cmd
+import spack.cmd.common.arguments as arguments
 import spack.store
 import spack.schema.projections
 from spack.config import validate
@@ -100,9 +101,6 @@ def setup_parser(sp):
 
     ssp = sp.add_subparsers(metavar='ACTION', dest='action')
 
-    specs_opts = dict(metavar='spec', action='store',
-                      help="seed specs of the packages to view")
-
     # The action parameterizes the command but in keeping with Spack
     # patterns we make it a subcommand.
     file_system_view_actions = {
@@ -139,23 +137,16 @@ def setup_parser(sp):
                 help="Do not remove dependents of specified specs.")
 
             # with all option, spec is an optional argument
-            so = specs_opts.copy()
-            so["nargs"] = "*"
-            so["default"] = []
-            grp.add_argument('specs', **so)
+            arguments.add_common_arguments(act, ['spec'])
             grp.add_argument("-a", "--all", action='store_true',
                              help="act on all specs in view")
 
         elif cmd == "statlink":
-            so = specs_opts.copy()
-            so["nargs"] = "*"
-            act.add_argument('specs', **so)
+            arguments.add_common_arguments(act, ['spec'])
 
         else:
             # without all option, spec is required
-            so = specs_opts.copy()
-            so["nargs"] = "+"
-            act.add_argument('specs', **so)
+            arguments.add_common_arguments(act, ['spec'])
 
     for cmd in ["symlink", "hardlink"]:
         act = file_system_view_actions[cmd]
@@ -167,7 +158,7 @@ def setup_parser(sp):
 def view(parser, args):
     'Produce a view of a set of packages.'
 
-    specs = spack.cmd.parse_specs(args.specs)
+    specs = spack.cmd.parse_specs(args.spec)
     path = args.path[0]
 
     if args.action in actions_link and args.projection_file:

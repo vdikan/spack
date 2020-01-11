@@ -22,7 +22,7 @@ def add_command(parser, command_dict):
         'setdefault', help='set the default module file for a package'
     )
     spack.cmd.common.arguments.add_common_arguments(
-        setdefault_parser, ['constraint']
+        setdefault_parser, ['installed_spec']
     )
 
     callbacks = dict(spack.cmd.modules.callbacks.items())

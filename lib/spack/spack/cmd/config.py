@@ -27,7 +27,7 @@ def setup_parser(subparser):
         '--scope', choices=scopes, metavar=scopes_metavar,
         help="configuration scope to read/modify")
 
-    sp = subparser.add_subparsers(metavar='subcommand', dest='config_command')
+    sp = subparser.add_subparsers(metavar='SUBCOMMAND', dest='config_command')
 
     get_parser = sp.add_parser('get', help='print configuration values')
     get_parser.add_argument('section',
