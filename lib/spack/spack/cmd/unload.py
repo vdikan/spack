@@ -13,7 +13,7 @@ level = "short"
 def setup_parser(subparser):
     """Parser is only constructed so that this prints a nice help
        message with -h. """
-    arguments.add_common_arguments(subparser, ['spec'])
+    arguments.add_common_arguments(subparser, ['installed_spec'])
 
 
 def unload(parser, args):

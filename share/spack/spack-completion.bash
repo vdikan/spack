@@ -1293,7 +1293,7 @@ _spack_unload () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "$(_all_packages)" -- "$cur"
+        compgen -W "$(_installed_packages)" -- "$cur"
     fi
 }
 
