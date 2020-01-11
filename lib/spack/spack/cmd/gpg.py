@@ -121,9 +121,9 @@ def gpg_sign(args):
                                'please choose one')
     output = args.output
     if not output:
-        output = args.spec + '.asc'
+        output = args.spec[0] + '.asc'
     # TODO: Support the package format Spack creates.
-    Gpg.sign(key, args.spec, output, args.clearsign)
+    Gpg.sign(key, ' '.join(args.spec), output, args.clearsign)
 
 
 def gpg_trust(args):
@@ -155,7 +155,7 @@ def gpg_verify(args):
     signature = args.signature
     if signature is None:
         signature = args.spec[0] + '.asc'
-    Gpg.verify(signature, args.spec)
+    Gpg.verify(signature, ' '.join(args.spec))
 
 
 def gpg(parser, args):
