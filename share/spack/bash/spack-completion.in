@@ -148,6 +148,14 @@ _keys () {
     spack gpg list
 }
 
+_config_sections () {
+    echo "compilers mirrors repos packages modules config upstreams"
+}
+
+_extensions () {
+    echo "aspell go-bootstrap go icedtea jdk kim-api lua matlab mofem-cephas octave openjdk perl python r ruby rust tcl yorick"
+}
+
 # Testing functions
 
 _test_vars () {

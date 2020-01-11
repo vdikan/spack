@@ -75,6 +75,25 @@ class SubcommandWriter(ArgparseWriter):
         return '    ' * self.level + prog + '\n'
 
 
+_positional_to_subroutine = {
+    'package': 'all_packages',
+    'spec': 'all_packages',
+    'filter': 'all_packages',
+    'installed': 'installed_packages',
+    'compiler': 'installed_compilers',
+    'section': 'config_sections',
+    'env': 'environments',
+    'extendable': 'extensions',
+    'keys': 'keys',
+    'help_command': 'subcommands',
+    'mirror': 'mirrors',
+    'virtual': 'providers',
+    'namespace': 'repos',
+    'hash': 'all_resource_hashes',
+    'pytest': 'tests',
+}
+
+
 class BashCompletionWriter(ArgparseCompletionWriter):
     """Write argparse output as bash programmable tab completion."""
 
@@ -103,7 +122,13 @@ class BashCompletionWriter(ArgparseCompletionWriter):
 """.format(self.optionals(optionals))
 
     def positionals(self, positionals):
-        return 'compgen -W "{0}" -- "$cur"'.format(' '.join(positionals))
+        for positional in positionals:
+            for key, value in _positional_to_subroutine.items():
+                if positional.startswith(key):
+                    return 'compgen -W "$(_{0})" -- "$cur"'.format(value)
+
+        # If no matches found, do nothing
+        return ':'
 
     def optionals(self, optionals):
         return 'compgen -W "{0}" -- "$cur"'.format(' '.join(optionals))
