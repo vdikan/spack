@@ -154,7 +154,7 @@ def gpg_verify(args):
     # TODO: Support the package format Spack creates.
     signature = args.signature
     if signature is None:
-        signature = args.spec + '.asc'
+        signature = args.spec[0] + '.asc'
     Gpg.verify(signature, args.spec)
 
 
