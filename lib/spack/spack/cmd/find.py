@@ -103,7 +103,7 @@ def setup_parser(subparser):
         '--end-date', help='latest date of installation [YYYY-MM-DD]'
     )
 
-    arguments.add_common_arguments(subparser, ['installed_specs'])
+    arguments.add_common_arguments(subparser, ['constraint'])
 
 
 def query_arguments(args):
@@ -194,27 +194,7 @@ def display_env(env, args, decorator):
 
 def find(parser, args):
     q_args = query_arguments(args)
-
-    qspecs = spack.cmd.parse_specs(args.specs)
-
-    # If an environment is provided, we'll restrict the search to
-    # only its installed packages.
-    env = ev._active_environment
-    if env:
-        q_args['hashes'] = set(env.all_hashes())
-
-    # return everything for an empty query.
-    if not qspecs:
-        return spack.store.db.query(**q_args)
-
-    # Return only matching stuff otherwise.
-    specs = {}
-    for spec in qspecs:
-        for s in spack.store.db.query(spec, **q_args):
-            # This is fast for already-concrete specs
-            specs[s.dag_hash()] = s
-
-    results = sorted(specs.values())
+    results = args.specs(**q_args)
 
     decorator = lambda s, f: f
     added = set()
@@ -229,9 +209,9 @@ def find(parser, args):
         args.groups = not args.format
 
     # Exit early with an error code if no package matches the constraint
-    if not results and args.specs:
+    if not results and args.constraint:
         msg = "No package matches the query: {0}"
-        msg = msg.format(' '.join(args.specs))
+        msg = msg.format(' '.join(args.constraint))
         tty.msg(msg)
         return 1
 

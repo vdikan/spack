@@ -88,7 +88,7 @@ def setup_parser(subparser):
 
 
 def edit(parser, args):
-    name = args.name
+    name = args.package
 
     # By default, edit package files
     path = spack.paths.packages_path

@@ -132,11 +132,13 @@ class DeptypeAction(argparse.Action):
         setattr(namespace, self.dest, deptype)
 
 
+# TODO: merge constraint and installed_specs
 @arg
 def constraint():
     return Args(
         'constraint', nargs=argparse.REMAINDER, action=ConstraintAction,
-        help='constraint to select a subset of installed packages')
+        help='constraint to select a subset of installed packages',
+        metavar='installed_specs')
 
 
 @arg
