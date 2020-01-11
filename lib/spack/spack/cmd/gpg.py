@@ -20,7 +20,7 @@ def setup_parser(subparser):
     subparsers = subparser.add_subparsers(help='GPG sub-commands')
 
     verify = subparsers.add_parser('verify', help=gpg_verify.__doc__)
-    arguments.add_common_arguments(verify, ['package'])
+    arguments.add_common_arguments(verify, ['installed_spec'])
     verify.add_argument('signature', type=str, nargs='?',
                         help='the signature file')
     verify.set_defaults(func=gpg_verify)
@@ -44,7 +44,7 @@ def setup_parser(subparser):
                       help='the key to use for signing')
     sign.add_argument('--clearsign', action='store_true',
                       help='if specified, create a clearsign signature')
-    arguments.add_common_arguments(sign, ['spec'])
+    arguments.add_common_arguments(sign, ['installed_spec'])
     sign.set_defaults(func=gpg_sign)
 
     create = subparsers.add_parser('create', help=gpg_create.__doc__)
@@ -154,8 +154,8 @@ def gpg_verify(args):
     # TODO: Support the package format Spack creates.
     signature = args.signature
     if signature is None:
-        signature = args.package + '.asc'
-    Gpg.verify(signature, args.package)
+        signature = args.spec + '.asc'
+    Gpg.verify(signature, args.spec)
 
 
 def gpg(parser, args):

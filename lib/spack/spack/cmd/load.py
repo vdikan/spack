@@ -13,7 +13,8 @@ level = "short"
 def setup_parser(subparser):
     """Parser is only constructed so that this prints a nice help
        message with -h. """
-    arguments.add_common_arguments(subparser, ['recurse_dependencies', 'spec'])
+    arguments.add_common_arguments(
+        subparser, ['recurse_dependencies', 'installed_spec'])
 
 
 def load(parser, args):

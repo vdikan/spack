@@ -709,7 +709,7 @@ _spack_gpg_verify () {
     then
         compgen -W "-h --help" -- "$cur"
     else
-        compgen -W "package signature" -- "$cur"
+        compgen -W "installed_spec signature" -- "$cur"
     fi
 }
 
@@ -736,7 +736,7 @@ _spack_gpg_sign () {
     then
         compgen -W "-h --help --output --key --clearsign" -- "$cur"
     else
-        compgen -W "spec" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
@@ -833,7 +833,7 @@ _spack_load () {
     then
         compgen -W "-h --help -r --dependencies" -- "$cur"
     else
-        compgen -W "spec" -- "$cur"
+        compgen -W "installed_spec" -- "$cur"
     fi
 }
 
