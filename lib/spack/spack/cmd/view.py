@@ -150,6 +150,7 @@ def setup_parser(sp):
             so = specs_opts.copy()
             so["nargs"] = "*"
             act.add_argument('specs', **so)
+
         else:
             # without all option, spec is required
             so = specs_opts.copy()
