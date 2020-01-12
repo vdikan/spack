@@ -132,7 +132,7 @@ def test_no_pipe_error():
 
     # Call close() on stdout to cause a broken pipe
     proc.stdout.close()
-    returncode = proc.wait()
+    proc.wait()
     stderr = proc.stderr.read().decode('utf-8')
 
     assert 'Broken pipe' not in stderr
