@@ -136,13 +136,11 @@ class ArgparseWriter(argparse.HelpFormatter):
         """
         try:
             self._write(parser, self.prog)
-        except IOError as e:
-            # Swallow pipe errors in Python 2
+        except Exception as e:
+            # Swallow pipe errors
+            # Raises IOError in Python 2 and BrokenPipeError in Python 3
             if e.errno != errno.EPIPE:
                 raise
-        except BrokenPipeError:
-            # Swallow pipe errors in Python 3
-            pass
 
 
 _rst_levels = ['=', '-', '^', '~', ':', '`']
