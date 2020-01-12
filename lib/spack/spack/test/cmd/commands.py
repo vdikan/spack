@@ -3,13 +3,17 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import filecmp
+import os
 import subprocess
 
 import pytest
 
 import spack.cmd
-import spack.main
 from spack.cmd.commands import _positional_to_subroutine
+import spack.main
+import spack.paths
+
 
 commands = spack.main.SpackCommand('commands')
 
@@ -160,3 +164,24 @@ def test_bash_completion():
     # Make sure subcommands are called
     for function in _positional_to_subroutine.values():
         assert '"$(_{0})"'.format(function) in out
+
+
+def test_updated_completion_scripts(tmpdir):
+    """Make sure our shell tab completion scripts remain up-to-date."""
+
+    msg = ("It looks like your pull request involves updates to Spack's "
+           "command-line interface. Please update Spack's shell tab "
+           "completion scripts by running:\n\n"
+           "    share/spack/qa/update-completion-scripts.sh\n\n"
+           "and adding the changed files to your pull request.")
+
+    for shell in ['bash']:  # 'zsh', 'fish']:
+        header = os.path.join(
+            spack.paths.share_path, shell, 'spack-completion.in')
+        script = 'spack-completion.{0}'.format(shell)
+        old_script = os.path.join(spack.paths.share_path, script)
+        new_script = str(tmpdir.join(script))
+
+        commands('--format', shell, '--header', header, '--update', new_script)
+
+        assert filecmp.cmp(old_script, new_script), msg
