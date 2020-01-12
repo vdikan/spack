@@ -136,7 +136,7 @@ class ArgparseWriter(argparse.HelpFormatter):
         """
         try:
             self._write(parser, self.prog)
-        except Exception as e:
+        except IOError as e:
             # Swallow pipe errors
             # Raises IOError in Python 2 and BrokenPipeError in Python 3
             if e.errno != errno.EPIPE:
