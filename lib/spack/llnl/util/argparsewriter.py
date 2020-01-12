@@ -246,9 +246,9 @@ class ArgparseRstWriter(ArgparseWriter):
 """
 
         for cmd, _ in subcommands:
-            prog = cmd.prog
+            prog = re.sub(r'^[^ ]* ', '', cmd.prog)
             string += '   * :ref:`{0} <{1}>`\n'.format(
-                prog, prog.replace(' ', '-'))
+                prog, cmd.prog.replace(' ', '-'))
 
         return string + '\n'
 
