@@ -25,3 +25,9 @@ def test_format_not_overridden():
 
     with pytest.raises(NotImplementedError):
         writer.write(parser)
+
+
+def test_completion_format_not_overridden():
+    writer = aw.ArgparseCompletionWriter('spack')
+
+    writer.write(parser)
