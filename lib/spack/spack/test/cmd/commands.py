@@ -3,10 +3,13 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import subprocess
+
 import pytest
 
 import spack.cmd
 import spack.main
+from spack.cmd.commands import _positional_to_subroutine
 
 commands = spack.main.SpackCommand('commands')
 
@@ -16,8 +19,11 @@ spack.main.add_all_commands(parser)
 
 def test_commands_by_name():
     """Test default output of spack commands."""
-    out = commands()
-    assert out.strip().split('\n') == sorted(spack.cmd.all_commands())
+    out1 = commands()
+    assert out1.strip().split('\n') == sorted(spack.cmd.all_commands())
+
+    out2 = commands('--format=names')
+    assert out1 == out2
 
 
 def test_subcommands():
@@ -94,3 +100,63 @@ def test_rst_update(tmpdir):
     assert update_file.exists()
     with update_file.open() as f:
         assert f.read() == 'empty\n'
+
+
+def test_update_with_header(tmpdir):
+    update_file = tmpdir.join('output')
+
+    # not yet created when commands is run
+    commands('--update', str(update_file))
+    assert update_file.exists()
+    with update_file.open() as f:
+        assert f.read()
+    fake_header = 'this is a header!\n\n'
+
+    filename = tmpdir.join('header.txt')
+    with filename.open('w') as f:
+        f.write(fake_header)
+
+    # created, newer than commands, but older than header
+    commands('--update', str(update_file), '--header', str(filename))
+
+    # newer than commands and header
+    commands('--update', str(update_file), '--header', str(filename))
+
+
+def test_no_pipe_error():
+    """Make sure we don't see any pipe errors when piping output."""
+
+    proc = subprocess.Popen(
+        ['spack', 'commands', '--format=rst'],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Call close() on stdout to cause a broken pipe
+    proc.stdout.close()
+    returncode = proc.wait()
+    stderr = proc.stderr.read().decode('utf-8')
+
+    assert 'Broken pipe' not in stderr
+
+
+def test_bash_completion():
+    """Test the bash completion writer."""
+    out = commands('--format=bash')
+
+    # Make sure header not included
+    assert '_bash_completion_spack () {' not in out
+    assert '_all_packages () {' not in out
+
+    # Make sure subcommands appear
+    assert '_spack_remove () {' in out
+    assert '_spack_compiler_find () {' in out
+
+    # Make sure aliases appear
+    assert '_spack_rm () {' in out
+    assert '_spack_compiler_add () {' in out
+
+    # Make sure options appear
+    assert '-h --help' in out
+
+    # Make sure subcommands are called
+    for function in _positional_to_subroutine.values():
+        assert '"$(_{0})"'.format(function) in out
