@@ -13,9 +13,15 @@ import pytest
 
 import llnl.util.argparsewriter as aw
 
+import spack.main
+
+
+parser = spack.main.make_argument_parser()
+spack.main.add_all_commands(parser)
+
 
 def test_format_not_overridden():
     writer = aw.ArgparseWriter('spack')
 
     with pytest.raises(NotImplementedError):
-        writer.write()
+        writer.write(parser)
