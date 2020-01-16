@@ -11,9 +11,12 @@ class AtomDft(MakefilePackage):
        generation."""
 
     homepage = "https://departments.icmab.es/leem/siesta/Pseudopotentials/"
-    url      = "https://departments.icmab.es/leem/siesta/Pseudopotentials/Code/atom-4.2.6.tgz"
+    url      = "https://departments.icmab.es/leem/SIESTA_MATERIAL/Pseudos/Code/atom-4.2.7-100.tgz"
 
-    version('4.2.6', sha256='489f0d883af35525647a8b8f691e7845c92fe6b5a25b13e1ed368edfd0391ed2')
+    maintainers = ['vdikan']
+
+    version('4.2.7', sha256='266a4119e64ca398444df7bc2f5004513891f2189cba33595a1742c64f8f3edc',
+            url="https://departments.icmab.es/leem/SIESTA_MATERIAL/Pseudos/Code/atom-4.2.7-100.tgz")
 
     depends_on('libgridxc')
     depends_on('xmlf90')
@@ -21,11 +24,19 @@ class AtomDft(MakefilePackage):
     def edit(self, spec, prefix):
         copy('arch.make.sample', 'arch.make')
 
+    # TODO: Refactor this
     @property
     def build_targets(self):
+        if '+libxc' in self.spec['libgridxc']:
+            return ['XMLF90_ROOT=%s' % self.spec['xmlf90'].prefix,
+                    'LIBXC_ROOT=%s' % self.spec['libxc'].prefix,
+                    'GRIDXC_ROOT=%s' % self.spec['libgridxc'].prefix,
+                    'FC=fc']
+
         return ['XMLF90_ROOT=%s' % self.spec['xmlf90'].prefix,
                 'GRIDXC_ROOT=%s' % self.spec['libgridxc'].prefix,
                 'FC=fc']
+
 
     def install(self, spec, prefix):
         mkdir(prefix.bin)
