@@ -6,7 +6,7 @@
  # Copyright (C) 1996-2016	The SIESTA group
  #  This file is distributed under the terms of the
  #  GNU General Public License: see COPYING in the top directory
-@@ -35,11 +35,20 @@
+@@ -35,11 +35,30 @@
  
  LDFLAGS =
  
@@ -19,12 +19,22 @@
  FPPFLAGS = $(DEFS_PREFIX)-DFC_HAVE_ABORT
 +FPPFLAGS+=
 +
++# Include_section:
++# ----------------
++
 +INCFLAGS+=
  
 -LIBS =
 +NETCDF_LIBS =
 +
 +LIBS = $(NETCDF_LIBS) -lpthread $(SCALAPACK_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)
++
++#SIESTA needs an F90 interface to MPI
++#This will give you SIESTA's own implementation
++#If your compiler vendor offers an alternative, you may change
++#to it here.
++MPI_INTERFACE=libmpi_f90.a
++MPI_INCLUDE=.
  
  # Dependency rules ---------
  

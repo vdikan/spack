@@ -32,6 +32,7 @@ class Siesta(MakefilePackage):
     depends_on('scalapack', when='+mpi')
     depends_on('netcdf-c')
     depends_on('netcdf-fortran')
+    depends_on('xmlf90')
 
     phases = ['edit', 'build', 'install']
 
@@ -68,11 +69,24 @@ class Siesta(MakefilePackage):
             archmake.filter('^COMP_LIBS\s=.*',
                             'COMP_LIBS = # Empty: BLAS and LAPACK are Spack dependencies.')
 
+            include_section_tag = '# Include_section:'
+            include_mks = [include_section_tag]
+            include_mks.append(
+                'include {0}/share/org.siesta-project/xmlf90.mk'.format(
+                    self.spec['xmlf90'].prefix))
+            archmake.filter('^' + include_section_tag,
+                            '\n'.join(include_mks))
+
             incflags_plus = self.spec['netcdf-fortran'].headers.cpp_flags
             archmake.filter('^NETCDF_LIBS\s=.*',
                             'NETCDF_LIBS = {0}'.format(
                                 self.spec['netcdf-fortran'].libs.ld_flags
                             ))
+
+            if '~mpi' in self.spec:
+                archmake.filter('^MPI_INTERFACE=.*',
+                                'MPI_INTERFACE=  # None: ordered serial version.')
+                archmake.filter('^MPI_INCLUDE=\.', '')
 
             fflags = '-O2'      # TODO: find alteration of compiler flags
             fflags += ' ' + self.compiler.pic_flag
