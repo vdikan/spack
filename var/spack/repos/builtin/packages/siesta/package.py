@@ -16,14 +16,19 @@ class Siesta(MakefilePackage):
 
     maintainers = ['vdikan']
 
+    # TODO: add older versions as well as those new from git that use LibXC & PSML
     version('4.1', sha256='19fa19a23adefb9741a436c6b5dbbdc0f57fb66876883f8f9f6695dfe7574fe3',
             url='https://launchpad.net/siesta/4.1/4.1-b4/+download/siesta-4.1-b4.tar.gz')
     # version('4.0.1', sha256='bfb9e4335ae1d1639a749ce7e679e739fdead5ee5766b5356ea1d259a6b1e6d1', url='https://launchpad.net/siesta/4.0/4.0.1/+download/siesta-4.0.1.tar.gz')
     # version('3.2-pl-5', sha256='e438bb007608e54c650e14de7fa0b5c72562abb09cbd92dcfb5275becd929a23', url='http://departments.icmab.es/leem/siesta/CodeAccess/Code/siesta-3.2-pl-5.tgz')
 
-    variant('mpi', default=True, description='Build parallel version with MPI')
+    variant('mpi', default=True, description='Build parallel version with MPI.')
     variant('psml', default=True,
-            description='Build with support for pseudopotentials in PSML format')
+            description='Build with support for pseudopotentials in PSML format.')
+    variant('gridxc', default=True,
+            description='Build SIESTA that uses XC energies and potrntials from LibGridXC.')
+    variant('libxc', default=False,
+            description='Build SIESTA that uses XC-functionals via LibXC.')
 
     patch('gfortran.make.patch', when='%gcc')
     patch('intel.make.patch', when='%intel')
@@ -36,6 +41,12 @@ class Siesta(MakefilePackage):
     depends_on('netcdf-fortran')
     depends_on('xmlf90', when='+psml')
     depends_on('libpsml', when='+psml')
+
+    # TODO: use external XC-deps for those versions that deserve them
+    depends_on('libgridxc ~libxc', when='+gridxc~libxc')
+    depends_on('libgridxc +libxc', when='+libxc')
+
+    conflicts('+libxc', when='~gridxc', msg='Need GridXC built with LibXC to utilize `+libxc`.')
 
     phases = ['edit', 'build', 'install']
 
@@ -81,6 +92,27 @@ class Siesta(MakefilePackage):
                 include_mks.append(
                     'include {0}/share/org.siesta-project/psml.mk'.format(
                         self.spec['libpsml'].prefix))
+
+            if '+gridxc' in self.spec:
+                include_mks.append('GRIDXC_ROOT = {0}'.format(self.spec['libgridxc'].prefix))
+
+                # NOTE: For the "flat" dependencies we have in Siesta it's okay
+                # to link LibXC with dependant GridXC here... but that's in general
+                # bad practice that does not fit the Spack's ideology.
+                # At least `gridxc_dp.mk` should be patched to bear the info about LibXC it
+                # was built with, as happens now with PSML and Xmlf90,
+                # for the sake of transferability and Great Justice!
+                if '+libxc' in self.spec:
+                    include_mks.append(
+                        'LIBXC_ROOT =  {0}'.format(self.spec['libxc'].prefix))
+
+                if self.spec['libgridxc'].satisfies('@:0.8'):
+                    include_mks.append(
+                        'include {0}/gridxc.mk'.format(self.spec['libgridxc'].prefix))
+                else:           # FIXME: proper check for versions higher than 9.0
+                    include_mks.append(
+                        'include {0}/share/org.siesta-project/gridxc_dp.mk'.format(
+                            self.spec['libgridxc'].prefix))
 
             archmake.filter('^' + include_section_tag, '\n'.join(include_mks))
 
