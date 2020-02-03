@@ -22,6 +22,8 @@ class Siesta(MakefilePackage):
     # version('3.2-pl-5', sha256='e438bb007608e54c650e14de7fa0b5c72562abb09cbd92dcfb5275becd929a23', url='http://departments.icmab.es/leem/siesta/CodeAccess/Code/siesta-3.2-pl-5.tgz')
 
     variant('mpi', default=True, description='Build parallel version with MPI')
+    variant('psml', default=True,
+            description='Build with support for pseudopotentials in PSML format')
 
     patch('gfortran.make.patch', when='%gcc')
     patch('intel.make.patch', when='%intel')
@@ -29,10 +31,11 @@ class Siesta(MakefilePackage):
     depends_on('mpi', when='+mpi')
     depends_on('blas')
     depends_on('lapack')
-    depends_on('scalapack', when='+mpi')
+    depends_on('scalapack', when='+mpi') # NOTE: cannot ld-link without scalapack when +mpi
     depends_on('netcdf-c')
     depends_on('netcdf-fortran')
-    depends_on('xmlf90')
+    depends_on('xmlf90', when='+psml')
+    depends_on('libpsml', when='+psml')
 
     phases = ['edit', 'build', 'install']
 
@@ -71,11 +74,15 @@ class Siesta(MakefilePackage):
 
             include_section_tag = '# Include_section:'
             include_mks = [include_section_tag]
-            include_mks.append(
-                'include {0}/share/org.siesta-project/xmlf90.mk'.format(
-                    self.spec['xmlf90'].prefix))
-            archmake.filter('^' + include_section_tag,
-                            '\n'.join(include_mks))
+            if '+psml' in self.spec:
+                include_mks.append(
+                    'include {0}/share/org.siesta-project/xmlf90.mk'.format(
+                        self.spec['xmlf90'].prefix))
+                include_mks.append(
+                    'include {0}/share/org.siesta-project/psml.mk'.format(
+                        self.spec['libpsml'].prefix))
+
+            archmake.filter('^' + include_section_tag, '\n'.join(include_mks))
 
             incflags_plus = self.spec['netcdf-fortran'].headers.cpp_flags
             archmake.filter('^NETCDF_LIBS\s=.*',
