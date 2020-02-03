@@ -32,3 +32,10 @@ class Libpsml(AutotoolsPackage):
     def configure_args(self):
         args = ["--with-xmlf90=%s" % self.spec['xmlf90'].prefix]
         return args
+
+    @run_after('install')
+    def fix_mk(self):
+        mkfile = FileFilter(join_path(self.prefix,
+                                      'share', 'org.siesta-project', 'psml.mk'))
+        mkfile.filter('^PSML_XMLF90_ROOT\s= .*',
+                      'PSML_XMLF90_ROOT = {0}'.format(self.spec['xmlf90'].prefix))
