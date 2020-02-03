@@ -68,16 +68,23 @@ class Siesta(MakefilePackage):
             archmake.filter('^COMP_LIBS\s=.*',
                             'COMP_LIBS = # Empty: BLAS and LAPACK are Spack dependencies.')
 
+            incflags_plus = self.spec['netcdf-fortran'].headers.cpp_flags
+            archmake.filter('^NETCDF_LIBS\s=.*',
+                            'NETCDF_LIBS = {0}'.format(
+                                self.spec['netcdf-fortran'].libs.ld_flags
+                            ))
+
             fflags = '-O2'      # TODO: find alteration of compiler flags
             fflags += ' ' + self.compiler.pic_flag
             archmake.filter('^FFLAGS = .*', 'FFLAGS = ' + fflags)
 
-            # fppflags = '-DGRID_DP -DCDF'
-            fppflags = '-DGRID_DP'
+            fppflags = '-DGRID_DP -DCDF'
             if '+mpi' in self.spec:
                 fppflags = '-DMPI {0}'.format(fppflags)
 
             archmake.filter('^FPPFLAGS\+=', 'FPPFLAGS+= {0}'.format(fppflags))
+
+            archmake.filter('^INCFLAGS\+=', 'INCFLAGS+= {0}'.format(incflags_plus))
 
 
     def build(self, spec, prefix):
