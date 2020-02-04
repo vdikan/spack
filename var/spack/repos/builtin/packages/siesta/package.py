@@ -32,6 +32,8 @@ class Siesta(MakefilePackage):
             description='Build SIESTA that uses XC energies and potrntials from LibGridXC.')
     variant('libxc', default=False,
             description='Build SIESTA that uses XC-functionals via LibXC.')
+    # FIXME: Utils don't build due to some problem with `atom.o` and mpi(?). WTF?
+    # variant('utils', default=False, description='Also build the useful utilities bundled with SIESTA (./Util dir).')
 
     patch('psml.gfortran.make.patch', when='@psml %gcc')
     conflicts('-psml', when='@psml', msg='Experimental PSML branch needs `+psml`.')
@@ -160,19 +162,23 @@ class Siesta(MakefilePackage):
     def build(self, spec, prefix):
         with working_dir('Obj'):
             make()
-        # with working_dir('Util'):
-        #     sh = which('sh')
-        #     sh('build_all.sh')
+
+        # FIXME:
+        # if '+utils' in self.spec:
+        #     with working_dir('Util'):
+        #         sh = which('sh')
+        #         sh('build_all.sh')
 
 
     def install(self, spec, prefix):
         mkdir(prefix.bin)
         with working_dir('Obj'):
             install('siesta', prefix.bin)
-        # with working_dir('Obj_trans'):
-        #     install('transiesta', prefix.bin)
-        # for root, _, files in os.walk('Util'):
-        #     for fname in files:
-        #         fname = join_path(root, fname)
-        #         if os.access(fname, os.X_OK):
-        #             install(fname, prefix.bin)
+
+        # FIXME:
+        # if '+utils' in self.spec:
+        #     for root, _, files in os.walk('Util'):
+        #         for fname in files:
+        #             fname = join_path(root, fname)
+        #             if os.access(fname, os.X_OK):
+        #                 install(fname, prefix.bin)
