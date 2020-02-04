@@ -13,14 +13,17 @@ class Siesta(MakefilePackage):
        dynamics simulations of molecules and solids."""
 
     homepage = "https://departments.icmab.es/leem/siesta/"
+    git      = "https://gitlab.com/siesta-project/siesta.git"
 
     maintainers = ['vdikan']
 
     # TODO: add older versions as well as those new from git that use LibXC & PSML
-    version('4.1', sha256='19fa19a23adefb9741a436c6b5dbbdc0f57fb66876883f8f9f6695dfe7574fe3',
+    version('psml',  branch='psml-support')
+
+    version('4.1-b4', sha256='19fa19a23adefb9741a436c6b5dbbdc0f57fb66876883f8f9f6695dfe7574fe3',
             url='https://launchpad.net/siesta/4.1/4.1-b4/+download/siesta-4.1-b4.tar.gz')
-    # version('4.0.1', sha256='bfb9e4335ae1d1639a749ce7e679e739fdead5ee5766b5356ea1d259a6b1e6d1', url='https://launchpad.net/siesta/4.0/4.0.1/+download/siesta-4.0.1.tar.gz')
-    # version('3.2-pl-5', sha256='e438bb007608e54c650e14de7fa0b5c72562abb09cbd92dcfb5275becd929a23', url='http://departments.icmab.es/leem/siesta/CodeAccess/Code/siesta-3.2-pl-5.tgz')
+    version('4.1-b3', sha256='f51970f34ee9b6b9de7fb77f722dde4e10817bafe7315716502eaa22bb96a090',
+            url='https://launchpad.net/siesta/4.1/4.1-b3/+download/siesta-4.1-b3.tar.gz')
 
     variant('mpi', default=True, description='Build parallel version with MPI.')
     variant('psml', default=True,
@@ -30,8 +33,14 @@ class Siesta(MakefilePackage):
     variant('libxc', default=False,
             description='Build SIESTA that uses XC-functionals via LibXC.')
 
-    patch('gfortran.make.patch', when='%gcc')
-    patch('intel.make.patch', when='%intel')
+    patch('psml.gfortran.make.patch', when='@psml %gcc')
+    conflicts('-psml', when='@psml', msg='Experimental PSML branch needs `+psml`.')
+    conflicts('-mpi', when='@psml',  msg='Experimental PSML branch needs MPI (bug?).')
+
+    conflicts('-gridxc', when='+psml', msg='PSML requires LibGridXC.')
+
+    patch('gfortran.make.patch', when='@4.1 %gcc')
+    patch('intel.make.patch', when='@4.1 %intel')
 
     depends_on('mpi', when='+mpi')
     depends_on('blas')
@@ -49,6 +58,8 @@ class Siesta(MakefilePackage):
     conflicts('+libxc', when='~gridxc', msg='Need GridXC built with LibXC to utilize `+libxc`.')
 
     phases = ['edit', 'build', 'install']
+
+    # flag_handler = env_flags  # TODO: refers to compiler flags; see below
 
     def edit(self, spec, prefix):
         sh = which('sh')
@@ -127,9 +138,15 @@ class Siesta(MakefilePackage):
                                 'MPI_INTERFACE=  # None: ordered serial version.')
                 archmake.filter('^MPI_INCLUDE=\.', '')
 
-            fflags = '-O2'      # TODO: find alteration of compiler flags
-            fflags += ' ' + self.compiler.pic_flag
-            archmake.filter('^FFLAGS = .*', 'FFLAGS = ' + fflags)
+            # TODO: Compiler flags.
+            # Should forward them to the build environment (`setup_build_environment`)
+            # and either exclude the variable `FFLAGS` from the arch.make
+            # or filter them here (prefer this option).
+            # See how it's done in OCCA: Spack/...../occa/packages.py
+
+            # fflags = '-O2'
+            # fflags += ' ' + self.compiler.pic_flag
+            # archmake.filter('^FFLAGS = .*', 'FFLAGS = ' + fflags)
 
             fppflags = '-DGRID_DP -DCDF'
             if '+mpi' in self.spec:
