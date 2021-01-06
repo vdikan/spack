@@ -48,6 +48,7 @@ class Siesta(MakefilePackage):
     depends_on('blas')
     depends_on('lapack')
     depends_on('scalapack', when='+mpi') # NOTE: cannot ld-link without scalapack when +mpi
+    depends_on('hdf5 +fortran +hl')
     depends_on('netcdf-c')
     depends_on('netcdf-fortran')
     depends_on('xmlf90', when='+psml')
@@ -94,7 +95,7 @@ class Siesta(MakefilePackage):
                                 'SCALAPACK_LIBS = {0}'.format(self.spec['scalapack'].libs.ld_flags))
 
             archmake.filter('^COMP_LIBS\s=.*',
-                            'COMP_LIBS = # Empty: BLAS and LAPACK are Spack dependencies.')
+                            'COMP_LIBS = libncdf.a libfdict.a')
 
             include_section_tag = '# Include_section:'
             include_mks = [include_section_tag]
@@ -131,8 +132,11 @@ class Siesta(MakefilePackage):
 
             incflags_plus = self.spec['netcdf-fortran'].headers.cpp_flags
             archmake.filter('^NETCDF_LIBS\s=.*',
-                            'NETCDF_LIBS = {0}'.format(
-                                self.spec['netcdf-fortran'].libs.ld_flags
+                            'NETCDF_LIBS = {} {} {} -lhdf5_fortran {}'.format(
+                                self.spec['netcdf-fortran'].libs.ld_flags,
+				self.spec['netcdf-c'].libs.ld_flags,
+				self.spec['hdf5'].libs.ld_flags,
+				self.spec['zlib'].libs.ld_flags
                             ))
 
             if '~mpi' in self.spec:
@@ -150,7 +154,7 @@ class Siesta(MakefilePackage):
             # fflags += ' ' + self.compiler.pic_flag
             # archmake.filter('^FFLAGS = .*', 'FFLAGS = ' + fflags)
 
-            fppflags = '-DGRID_DP -DCDF'
+            fppflags = '-DGRID_DP -DCDF -DNCDF -DNCDF_4'
             if '+mpi' in self.spec:
                 fppflags = '-DMPI {0}'.format(fppflags)
 
