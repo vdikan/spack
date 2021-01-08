@@ -1,3 +1,4 @@
+# Copyright 2020 The SIESTA group
 # Copyright 2013-2020 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
@@ -17,157 +18,143 @@ class Siesta(MakefilePackage):
 
     maintainers = ['vdikan']
 
-    # TODO: add older versions as well as those new from git that use LibXC & PSML
-    version('psml',  branch='psml-support')
+    # version('psml',  branch='psml-support')
 
     version('4.1-b4', sha256='19fa19a23adefb9741a436c6b5dbbdc0f57fb66876883f8f9f6695dfe7574fe3',
             url='https://launchpad.net/siesta/4.1/4.1-b4/+download/siesta-4.1-b4.tar.gz')
-    version('4.1-b3', sha256='f51970f34ee9b6b9de7fb77f722dde4e10817bafe7315716502eaa22bb96a090',
-            url='https://launchpad.net/siesta/4.1/4.1-b3/+download/siesta-4.1-b3.tar.gz')
 
     variant('mpi', default=True, description='Build parallel version with MPI.')
-    variant('psml', default=True,
-            description='Build with support for pseudopotentials in PSML format.')
-    variant('gridxc', default=True,
-            description='Build SIESTA that uses XC energies and potrntials from LibGridXC.')
-    variant('libxc', default=False,
-            description='Build SIESTA that uses XC-functionals via LibXC.')
-    # FIXME: Utils don't build due to some problem with `atom.o` and mpi(?). WTF?
-    # variant('utils', default=False, description='Also build the useful utilities bundled with SIESTA (./Util dir).')
+    # variant('psml', default=True,
+    #         description='Build with support for pseudopotentials in PSML format.')
+    variant('utils', default=True, description='Build the utilities suit bundled with SIESTA (./Util dir).')
 
-    patch('psml.gfortran.make.patch', when='@psml %gcc')
-    conflicts('-psml', when='@psml', msg='Experimental PSML branch needs `+psml`.')
-    conflicts('-mpi', when='@psml',  msg='Experimental PSML branch needs MPI (bug?).')
-
-    conflicts('-gridxc', when='+psml', msg='PSML requires LibGridXC.')
-
-    patch('gfortran.make.patch', when='@4.1 %gcc')
-    patch('intel.make.patch', when='@4.1 %intel')
+    # conflicts('-psml', when='@psml', msg='Experimental PSML branch needs `+psml`.')
+    # conflicts('-mpi', when='@psml',  msg='Experimental PSML branch needs MPI (bug?).')
+    # conflicts('-gridxc', when='+psml', msg='PSML requires LibGridXC.')
 
     depends_on('mpi', when='+mpi')
     depends_on('blas')
     depends_on('lapack')
     depends_on('scalapack', when='+mpi') # NOTE: cannot ld-link without scalapack when +mpi
     depends_on('netcdf-c')
-    depends_on('netcdf-fortran')
-    depends_on('xmlf90', when='+psml')
-    depends_on('libpsml', when='+psml')
+    depends_on('netcdf-fortran') # TODO: CDF4
+    depends_on('libxc@3.0.0') # NOTE: hard-wired libxc version, Siesta does not link against newer ones yet
 
-    # TODO: use external XC-deps for those versions that deserve them
-    depends_on('libgridxc ~libxc', when='+gridxc~libxc')
-    depends_on('libgridxc +libxc', when='+libxc')
+    depends_on('libgridxc +libxc ~mpi', when='~mpi')
+    depends_on('libgridxc +libxc +mpi', when='+mpi')
 
-    conflicts('+libxc', when='~gridxc', msg='Need GridXC built with LibXC to utilize `+libxc`.')
+    # depends_on('xmlf90', when='+psml')
+    # depends_on('libpsml', when='+psml')
 
     phases = ['edit', 'build', 'install']
 
-    # flag_handler = env_flags  # TODO: refers to compiler flags; see below
+    @property
+    def final_fflags_string(self):
+        return ' '.join(self.spec.compiler_flags['fflags'] + [
+            self.compiler.fc_pic_flag,
+        ])
+
+
+    @property
+    def final_fppflags_string(self):
+        fppflags = ['-DGRID_DP', '-DCDF']
+        if '+mpi' in self.spec:
+            fppflags.append('-DMPI')
+
+        return ' '.join(fppflags)
+
+
+    @property
+    def final_incflags_string(self):
+        return self.spec['netcdf-fortran'].headers.cpp_flags
+
+
+    @property
+    def archmake_lp_content(self):
+        "Archmake content list for the `stable` version hosted on launchpad."
+        spec = self.spec
+        conf = ['.SUFFIXES: .f .F .o .c .a .f90 .F90']
+
+        conf.append('SIESTA_ARCH = {0}'.format('_'.join([spec.target.name, spec.platform, spec.os])))
+
+        conf.append('CC = {0}'.format(env['CC']))
+        conf.append('FPP = {0} -E -P -x -c'.format(env['FC']))
+        if '+mpi' in spec:
+            conf.append('FC = {0}'.format(env['MPIF90']))
+        else:
+            conf.append('FC = {0}'.format(env['FC']))
+
+        conf.append('FFLAGS = {0}'.format(self.final_fflags_string))
+
+        conf.append('FC_SERIAL = {0}'.format(env['FC']))
+
+        conf += ['AR = ar', 'RANLIB = ranlib', 'SYS = nag']
+        conf += ['SP_KIND = 4', 'DP_KIND = 8', 'KINDS = $(SP_KIND) $(DP_KIND)']
+
+        conf.append('BLAS_LIBS = {0}'.format(self.spec['blas'].libs.ld_flags))
+        conf.append('LAPACK_LIBS = {0}'.format(self.spec['lapack'].libs.ld_flags))
+        if '+mpi' in spec:
+            conf.append('SCALAPACK_LIBS = {0}'.format(self.spec['scalapack'].libs.ld_flags))
+
+        conf.append('GRIDXC_ROOT = {0}'.format(self.spec['libgridxc'].prefix))
+        conf.append('LIBXC_ROOT =  {0}'.format(self.spec['libxc'].prefix))
+
+        if self.spec['libgridxc'].satisfies('@:0.8'):
+            conf.append('include {0}/gridxc.mk'.format(self.spec['libgridxc'].prefix))
+        else:           # FIXME: proper check for versions higher than 9.0
+            conf.append('include {0}/share/org.siesta-project/gridxc_dp.mk'.format(
+                self.spec['libgridxc'].prefix))
+
+        conf.append('FPPFLAGS = $(DEFS_PREFIX)-DFC_HAVE_ABORT')
+        conf.append('FPPFLAGS+= {0}'.format(self.final_fppflags_string))
+
+        conf.append('INCFLAGS+= {0}'.format(self.final_incflags_string))
+        conf.append('NETCDF_LIBS = {0} {1}'.format(
+            self.spec['netcdf-fortran'].libs.ld_flags,
+            self.spec['hdf5'].libs.ld_flags,
+        ))
+
+        conf.append('LIBS = $(NETCDF_LIBS) -lpthread $(SCALAPACK_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)')
+
+        if '+mpi' in spec:
+            conf.append('MPI_INTERFACE=libmpi_f90.a')
+            conf.append('MPI_INCLUDE=.')
+
+        conf += ['', 'FFLAGS_DEBUG = -g -O1', '',
+                 'atom.o: atom.F',
+                 '\t$(FC) -c $(FFLAGS_DEBUG) $(INCFLAGS) $(FPPFLAGS) $(FPPFLAGS_fixed_F) $<',
+                 '',
+                 '.c.o:',
+                 '\t$(CC) -c $(CFLAGS) $(INCFLAGS) $(CPPFLAGS) $<',
+                 '.F.o:',
+                 '\t$(FC) -c $(FFLAGS) $(INCFLAGS) $(FPPFLAGS) $(FPPFLAGS_fixed_F)  $<',
+                 '.F90.o:',
+                 '\t$(FC) -c $(FFLAGS) $(INCFLAGS) $(FPPFLAGS) $(FPPFLAGS_free_F90) $<',
+                 '.f.o:',
+                 '\t$(FC) -c $(FFLAGS) $(INCFLAGS) $(FCFLAGS_fixed_f)  $<',
+                 '.f90.o:',
+                 '\t$(FC) -c $(FFLAGS) $(INCFLAGS) $(FCFLAGS_free_f90)  $<',]
+
+        return conf
+
 
     def edit(self, spec, prefix):
         sh = which('sh')
         with working_dir('Obj'):
             sh('../Src/obj_setup.sh')
-            if spec.satisfies('%gcc'):
-                copy('gfortran.make', 'arch.make')
-            elif spec.satisfies('%intel'):
-                copy('intel.make', 'arch.make')
-            else:
-                tty.error("Known compilers are: gcc, intel.")
-
-            archmake = FileFilter('arch.make')
-            archmake.filter('SIESTA_ARCH = .*', 'SIESTA_ARCH = ' +
-                            '_'.join([spec.target.name,
-                                      spec.platform, spec.os]))
-
-            if '+mpi' in self.spec:
-                if spec.satisfies('%gcc'):
-                    archmake.filter('^FC = .*', 'FC = mpif90')
-                elif spec.satisfies('%intel'):
-                    archmake.filter('^FC = .*', 'FC = mpifort')
-
-            archmake.filter('^BLAS_LIBS\s=',
-                            'BLAS_LIBS = {0}'.format(self.spec['blas'].libs.ld_flags))
-            archmake.filter('^LAPACK_LIBS\s=',
-                            'LAPACK_LIBS = {0}'.format(self.spec['lapack'].libs.ld_flags))
-            if '+mpi' in self.spec:
-                archmake.filter('^SCALAPACK_LIBS\s=',
-                                'SCALAPACK_LIBS = {0}'.format(self.spec['scalapack'].libs.ld_flags))
-
-            archmake.filter('^COMP_LIBS\s=.*',
-                            'COMP_LIBS = # Empty: BLAS and LAPACK are Spack dependencies.')
-
-            include_section_tag = '# Include_section:'
-            include_mks = [include_section_tag]
-            if '+psml' in self.spec:
-                include_mks.append(
-                    'include {0}/share/org.siesta-project/xmlf90.mk'.format(
-                        self.spec['xmlf90'].prefix))
-                include_mks.append(
-                    'include {0}/share/org.siesta-project/psml.mk'.format(
-                        self.spec['libpsml'].prefix))
-
-            if '+gridxc' in self.spec:
-                include_mks.append('GRIDXC_ROOT = {0}'.format(self.spec['libgridxc'].prefix))
-
-                # NOTE: For the "flat" dependencies we have in Siesta it's okay
-                # to link LibXC with dependant GridXC here... but that's in general
-                # bad practice that does not fit the Spack's ideology.
-                # At least `gridxc_dp.mk` should be patched to bear the info about LibXC it
-                # was built with, as happens now with PSML and Xmlf90,
-                # for the sake of transferability and Great Justice!
-                if '+libxc' in self.spec:
-                    include_mks.append(
-                        'LIBXC_ROOT =  {0}'.format(self.spec['libxc'].prefix))
-
-                if self.spec['libgridxc'].satisfies('@:0.8'):
-                    include_mks.append(
-                        'include {0}/gridxc.mk'.format(self.spec['libgridxc'].prefix))
-                else:           # FIXME: proper check for versions higher than 9.0
-                    include_mks.append(
-                        'include {0}/share/org.siesta-project/gridxc_dp.mk'.format(
-                            self.spec['libgridxc'].prefix))
-
-            archmake.filter('^' + include_section_tag, '\n'.join(include_mks))
-
-            incflags_plus = self.spec['netcdf-fortran'].headers.cpp_flags
-            archmake.filter('^NETCDF_LIBS\s=.*',
-                            'NETCDF_LIBS = {0}'.format(
-                                self.spec['netcdf-fortran'].libs.ld_flags
-                            ))
-
-            if '~mpi' in self.spec:
-                archmake.filter('^MPI_INTERFACE=.*',
-                                'MPI_INTERFACE=  # None: ordered serial version.')
-                archmake.filter('^MPI_INCLUDE=\.', '')
-
-            # TODO: Compiler flags.
-            # Should forward them to the build environment (`setup_build_environment`)
-            # and either exclude the variable `FFLAGS` from the arch.make
-            # or filter them here (prefer this option).
-            # See how it's done in OCCA: Spack/...../occa/packages.py
-
-            # fflags = '-O2'
-            # fflags += ' ' + self.compiler.pic_flag
-            # archmake.filter('^FFLAGS = .*', 'FFLAGS = ' + fflags)
-
-            fppflags = '-DGRID_DP -DCDF'
-            if '+mpi' in self.spec:
-                fppflags = '-DMPI {0}'.format(fppflags)
-
-            archmake.filter('^FPPFLAGS\+=', 'FPPFLAGS+= {0}'.format(fppflags))
-
-            archmake.filter('^INCFLAGS\+=', 'INCFLAGS+= {0}'.format(incflags_plus))
+            with open('arch.make', 'w') as archmake:
+                for line in self.archmake_lp_content:
+                    archmake.write('{0}\n'.format(line))
 
 
     def build(self, spec, prefix):
         with working_dir('Obj'):
             make()
 
-        # FIXME:
-        # if '+utils' in self.spec:
-        #     with working_dir('Util'):
-        #         sh = which('sh')
-        #         sh('build_all.sh')
+        if '+utils' in self.spec:
+            with working_dir('Util'):
+                sh = which('sh')
+                sh('build_all.sh')
 
 
     def install(self, spec, prefix):
@@ -175,10 +162,9 @@ class Siesta(MakefilePackage):
         with working_dir('Obj'):
             install('siesta', prefix.bin)
 
-        # FIXME:
-        # if '+utils' in self.spec:
-        #     for root, _, files in os.walk('Util'):
-        #         for fname in files:
-        #             fname = join_path(root, fname)
-        #             if os.access(fname, os.X_OK):
-        #                 install(fname, prefix.bin)
+        if '+utils' in self.spec:
+            for root, _, files in os.walk('Util'):
+                for fname in files:
+                    fname = join_path(root, fname)
+                    if os.access(fname, os.X_OK):
+                        install(fname, prefix.bin)
