@@ -36,7 +36,6 @@ class Siesta(MakefilePackage):
     depends_on('blas')
     depends_on('lapack')
     depends_on('scalapack', when='+mpi') # NOTE: cannot ld-link without scalapack when +mpi
-    depends_on('netcdf-c')
     depends_on('netcdf-fortran') # TODO: CDF4
     depends_on('libxc@3.0.0') # NOTE: hard-wired libxc version, Siesta does not link against newer ones yet
 
@@ -149,12 +148,26 @@ class Siesta(MakefilePackage):
 
     def build(self, spec, prefix):
         with working_dir('Obj'):
-            make()
+            make()              # build Siesta
 
-        if '+utils' in self.spec:
-            with working_dir('Util'):
-                sh = which('sh')
-                sh('build_all.sh')
+        skipped_batch_utils = []
+
+        if self.spec.satisfies('@4.1-b4'):
+            # These utils fail to build yet, mostly due to Makefile-s (mis)formatting:
+            skipped_batch_utils = [
+                'Util/MPI_test',      # needs patch
+                'Util/MPI_test/MPI',  # needs patch
+                'Util/TS/TBtrans',    # needs patch
+                'Util/TS/tshs2tshs',  # needs patch
+                'Util/STM/ol-stm/Src' # needs FFTW3
+            ]
+
+        if '+utils' in self.spec: # build Utils, all but skipped
+            for dname in [f[0] for f in os.walk("Util")]:
+                if dname not in skipped_batch_utils:
+                    with working_dir(dname):
+                        if (os.access('Makefile', os.F_OK)):
+                            make(parallel=False)
 
 
     def install(self, spec, prefix):
@@ -162,7 +175,7 @@ class Siesta(MakefilePackage):
         with working_dir('Obj'):
             install('siesta', prefix.bin)
 
-        if '+utils' in self.spec:
+        if '+utils' in self.spec: # install all Util executables produced at `build` stage
             for root, _, files in os.walk('Util'):
                 for fname in files:
                     fname = join_path(root, fname)
