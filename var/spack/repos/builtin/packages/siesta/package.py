@@ -33,12 +33,15 @@ class Siesta(MakefilePackage):
     # conflicts('-gridxc', when='+psml', msg='PSML requires LibGridXC.')
 
     depends_on('mpi', when='+mpi')
+
     depends_on('blas')
     depends_on('lapack')
     depends_on('scalapack', when='+mpi') # NOTE: cannot ld-link without scalapack when +mpi
-    depends_on('netcdf-fortran') # TODO: CDF4
-    depends_on('libxc@3.0.0') # NOTE: hard-wired libxc version, Siesta does not link against newer ones yet
 
+    depends_on('hdf5 +fortran')
+    depends_on('netcdf-fortran')
+
+    depends_on('libxc@3.0.0') # NOTE: hard-wired libxc version, Siesta does not link against newer ones yet
     depends_on('libgridxc +libxc ~mpi', when='~mpi')
     depends_on('libgridxc +libxc +mpi', when='+mpi')
 
@@ -56,7 +59,7 @@ class Siesta(MakefilePackage):
 
     @property
     def final_fppflags_string(self):
-        fppflags = ['-DGRID_DP', '-DCDF']
+        fppflags = ['-DGRID_DP', '-DCDF', '-DNCDF', '-DNCDF_4']
         if '+mpi' in self.spec:
             fppflags.append('-DMPI')
 
@@ -95,6 +98,8 @@ class Siesta(MakefilePackage):
         if '+mpi' in spec:
             conf.append('SCALAPACK_LIBS = {0}'.format(self.spec['scalapack'].libs.ld_flags))
 
+        conf.append('COMP_LIBS = libncdf.a libfdict.a')
+
         conf.append('GRIDXC_ROOT = {0}'.format(self.spec['libgridxc'].prefix))
         conf.append('LIBXC_ROOT =  {0}'.format(self.spec['libxc'].prefix))
 
@@ -108,10 +113,13 @@ class Siesta(MakefilePackage):
         conf.append('FPPFLAGS+= {0}'.format(self.final_fppflags_string))
 
         conf.append('INCFLAGS+= {0}'.format(self.final_incflags_string))
-        conf.append('NETCDF_LIBS = {0} {1}'.format(
+
+        conf.append('NETCDF_LIBS = {0}'.format(' '.join([
             self.spec['netcdf-fortran'].libs.ld_flags,
             self.spec['hdf5'].libs.ld_flags,
-        ))
+            '-lhdf5_fortran',
+            self.spec['zlib'].libs.ld_flags,
+        ])))
 
         conf.append('LIBS = $(NETCDF_LIBS) -lpthread $(SCALAPACK_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)')
 
