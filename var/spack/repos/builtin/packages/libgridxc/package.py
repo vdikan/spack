@@ -65,3 +65,19 @@ class Libgridxc(Package):
         mymake=Executable('make')
         with working_dir('build'):
             mymake(*self.make_args())
+
+
+    @run_after('install')
+    def fix_mk(self):
+        sanity_check_is_file = [join_path(self.prefix, 'gridxc.mk')]
+
+        mkdir(join_path(self.prefix, 'share'))
+        mkdir(join_path(self.prefix, 'share', 'org.siesta-project'))
+
+        if '+mpi' in self.spec:
+            target_mk = 'gridxc_dp_mpi.mk'
+        else:
+            target_mk = 'gridxc_dp.mk'
+
+        copy(join_path(self.prefix, 'gridxc.mk'),
+             join_path(self.prefix, 'share', 'org.siesta-project', target_mk))
