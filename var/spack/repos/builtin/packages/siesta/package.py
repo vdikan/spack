@@ -22,6 +22,7 @@ class Siesta(MakefilePackage):
             url='https://launchpad.net/siesta/4.1/4.1-b4/+download/siesta-4.1-b4.tar.gz')
 
     version('master',  branch='master')
+    version('psml',  branch='psml-support')
 
     variant('mpi', default=True, description='Build parallel version with MPI.')
     variant('utils', default=True, description='Build the utilities suit bundled with SIESTA (./Util dir).')
@@ -48,8 +49,8 @@ class Siesta(MakefilePackage):
     depends_on('libgridxc +libxc ~mpi', when='~mpi')
     depends_on('libgridxc +libxc +mpi', when='+mpi')
 
-    depends_on('xmlf90',  when='@master')
-    depends_on('libpsml', when='@master')
+    depends_on('xmlf90',  when='@master,psml')
+    depends_on('libpsml', when='@master,psml')
 
     phases = ['edit', 'build', 'install']
 
@@ -160,17 +161,17 @@ class Siesta(MakefilePackage):
         archmake.filter('^SIESTA_ARCH=Master-template',
                         'SIESTA_ARCH={0}'.format(self.siesta_arch_string))
 
-        archmake.filter('^WITH_PSML=',   'WITH_PSML=1')
-        archmake.filter('^WITH_GRIDXC=', 'WITH_GRIDXC=1')
+        archmake.filter('^WITH_PSML=.*',   'WITH_PSML=1')
+        archmake.filter('^WITH_GRIDXC=.*', 'WITH_GRIDXC=1')
 
         if '+mpi' not in spec:
             archmake.filter('^WITH_MPI=1', 'WITH_MPI=')
 
-        archmake.filter('^WITH_NETCDF=', 'WITH_NETCDF=1')
-        archmake.filter('^WITH_SEPARATE_NETCDF_FORTRAN=', 'WITH_SEPARATE_NETCDF_FORTRAN=1')
-        archmake.filter('^WITH_NCDF=', 'WITH_NCDF=1')
+        archmake.filter('^WITH_NETCDF=.*', 'WITH_NETCDF=1')
+        archmake.filter('^WITH_SEPARATE_NETCDF_FORTRAN=.*', 'WITH_SEPARATE_NETCDF_FORTRAN=1')
+        archmake.filter('^WITH_NCDF=.*', 'WITH_NCDF=1')
 
-        archmake.filter('^WITH_LEGACY_GRIDXC_INSTALL=',
+        archmake.filter('^WITH_LEGACY_GRIDXC_INSTALL=.*',
                         'WITH_LEGACY_GRIDXC_INSTALL=1  # For now Spack recipy uses legacy installation schema for gridxc')
 
         archmake.filter('^#XMLF90_ROOT=', 'XMLF90_ROOT={0}'.format(spec['xmlf90'].prefix))
@@ -222,7 +223,7 @@ class Siesta(MakefilePackage):
                         archmake.write('{0}\n'.format(line))
             # In case of a modern version, e.g. obtained from Git, the `master-raw`
             # makefile sample is copied and regex-filtered instead:
-            elif self.spec.satisfies('@master'):
+            elif (self.spec.satisfies('@master') or self.spec.satisfies('@psml')):
                 copy('./ARCH-EXPERIMENTAL/master-raw.make', './arch.make')
                 self.filter_archmake(FileFilter('./arch.make'))
 
