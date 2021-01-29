@@ -25,7 +25,7 @@ class Siesta(MakefilePackage):
     version('psml',  branch='psml-support')
 
     variant('mpi', default=True, description='Build parallel version with MPI.')
-    variant('utils', default=True, description='Build the utilities suit bundled with SIESTA (./Util dir).')
+    variant('utils', default=False, description='Build the utilities suit bundled with SIESTA (./Util dir).')
     # variant('psml', default=True,
     #         description='Build with support for pseudopotentials in PSML format.')
 
@@ -171,8 +171,8 @@ class Siesta(MakefilePackage):
         archmake.filter('^WITH_SEPARATE_NETCDF_FORTRAN=.*', 'WITH_SEPARATE_NETCDF_FORTRAN=1')
         archmake.filter('^WITH_NCDF=.*', 'WITH_NCDF=1')
 
-        archmake.filter('^WITH_LEGACY_GRIDXC_INSTALL=.*',
-                        'WITH_LEGACY_GRIDXC_INSTALL=1  # For now Spack recipy uses legacy installation schema for gridxc')
+        #NOTE: For now Spack recipy uses legacy installation schema for gridxc
+        archmake.filter('^WITH_LEGACY_GRIDXC_INSTALL=.*', 'WITH_LEGACY_GRIDXC_INSTALL=1')
 
         archmake.filter('^#XMLF90_ROOT=', 'XMLF90_ROOT={0}'.format(spec['xmlf90'].prefix))
         archmake.filter('^#PSML_ROOT=', 'PSML_ROOT={0}'.format(spec['libpsml'].prefix))
@@ -233,12 +233,14 @@ class Siesta(MakefilePackage):
             make()              # build Siesta
 
         # These utils fail to build yet, mostly due to Makefile-s (mis)formatting:
+        #FIXME: skipping builds of utilities by default
         skipped_batch_utils = [
             'Util/MPI_test',      # needs patch
             'Util/MPI_test/MPI',  # needs patch
             'Util/TS/TBtrans',    # needs patch
             'Util/TS/tshs2tshs',  # needs patch
-            'Util/STM/ol-stm/Src' # needs FFTW3
+            'Util/STM/ol-stm/Src', # needs FFTW3
+            'Util/STM/ol-stm', # needs FFTW3
         ]
 
         if '+utils' in self.spec: # build Utils, all but skipped
