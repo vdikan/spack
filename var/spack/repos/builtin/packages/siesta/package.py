@@ -25,6 +25,7 @@ class Siesta(MakefilePackage):
     version('psml',  branch='psml-support')
 
     variant('mpi', default=True, description='Build parallel version with MPI.')
+    variant('flook', default=True, description='Build SIESTA with flook support to interface with Lua.')
     variant('utils', default=False, description='Build the utilities suit bundled with SIESTA (./Util dir).')
     # variant('psml', default=True,
     #         description='Build with support for pseudopotentials in PSML format.')
@@ -48,6 +49,8 @@ class Siesta(MakefilePackage):
     depends_on('libxc@3.0.0') # NOTE: hard-wired libxc version, Siesta does not link against newer ones yet
     depends_on('libgridxc +libxc ~mpi', when='~mpi')
     depends_on('libgridxc +libxc +mpi', when='+mpi')
+
+    depends_on('flook', when='+flook')
 
     depends_on('xmlf90',  when='@master,psml')
     depends_on('libpsml', when='@master,psml')
@@ -73,6 +76,8 @@ class Siesta(MakefilePackage):
         fppflags = ['-DGRID_DP', '-DCDF', '-DNCDF', '-DNCDF_4']
         if '+mpi' in self.spec:
             fppflags.append('-DMPI')
+        if '+flook' in self.spec:
+            fppflags.append('-DSIESTA__FLOOK')
 
         return ' '.join(fppflags)
 
@@ -119,6 +124,9 @@ class Siesta(MakefilePackage):
         else:           # FIXME: proper check for versions higher than 9.0
             conf.append('include {0}/share/org.siesta-project/gridxc_dp.mk'.format(
                 spec['libgridxc'].prefix))
+        
+        if "+flook" in spec:
+            conf.append('FLOOK_LIBS=-L/{0}/lib -lflookall -ldl'.format(spec['flook'].prefix))
 
         conf.append('FPPFLAGS = $(DEFS_PREFIX)-DFC_HAVE_ABORT')
         conf.append('FPPFLAGS+= {0}'.format(self.final_fppflags_string))
@@ -132,7 +140,7 @@ class Siesta(MakefilePackage):
             spec['zlib'].libs.ld_flags,
         ])))
 
-        conf.append('LIBS = $(NETCDF_LIBS) -lpthread $(SCALAPACK_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)')
+        conf.append('LIBS = $(NETCDF_LIBS) -lpthread $(SCALAPACK_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLOOK_LIBS)')
 
         if '+mpi' in spec:
             conf.append('MPI_INTERFACE=libmpi_f90.a')
@@ -164,6 +172,9 @@ class Siesta(MakefilePackage):
         archmake.filter('^WITH_PSML=.*',   'WITH_PSML=1')
         archmake.filter('^WITH_GRIDXC=.*', 'WITH_GRIDXC=1')
 
+        if '+flook' in spec:
+            archmake.filter('^WITH_FLOOK=.*', 'WITH_FLOOK=1')
+
         if '+mpi' not in spec:
             archmake.filter('^WITH_MPI=1', 'WITH_MPI=')
 
@@ -180,6 +191,8 @@ class Siesta(MakefilePackage):
                         'GRIDXC_ROOT={0}\nLIBXC_ROOT={1}'.format(
                         spec['libgridxc'].prefix, spec['libxc'].prefix
                         ))      #NOTE: older gridxc installation requires LIBXC_ROOT specified
+        if "+flook" in spec:
+            archmake.filter('^#FLOOK_ROOT=', 'FLOOK_ROOT={0}'.format(spec['flook'].prefix))
 
         archmake.filter('^#NETCDF_ROOT=.*',
                         'NETCDF_ROOT={0}'.format(spec['netcdf-c'].prefix))
@@ -262,3 +275,4 @@ class Siesta(MakefilePackage):
                     fname = join_path(root, fname)
                     if os.access(fname, os.X_OK):
                         install(fname, prefix.bin)
+
