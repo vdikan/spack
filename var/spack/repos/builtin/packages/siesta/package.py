@@ -7,6 +7,7 @@
 
 from spack import *
 import os
+import stat
 
 
 class Siesta(MakefilePackage):
@@ -211,7 +212,7 @@ class Siesta(MakefilePackage):
 
 
     def edit(self, spec, prefix):
-        sh = which('sh')
+        sh = which('bash')
         with working_dir('Obj'):
             sh('../Src/obj_setup.sh')
             # Mostly for reference than for practical reasons the launchpad public
@@ -229,26 +230,23 @@ class Siesta(MakefilePackage):
 
 
     def build(self, spec, prefix):
+        sh = which('sh')  # erase
+
         with working_dir('Obj'):
             make()              # build Siesta
 
-        # These utils fail to build yet, mostly due to Makefile-s (mis)formatting:
-        #FIXME: skipping builds of utilities by default
-        skipped_batch_utils = [
-            'Util/MPI_test',      # needs patch
-            'Util/MPI_test/MPI',  # needs patch
-            'Util/TS/TBtrans',    # needs patch
-            'Util/TS/tshs2tshs',  # needs patch
-            'Util/STM/ol-stm/Src', # needs FFTW3
-            'Util/STM/ol-stm', # needs FFTW3
-        ]
-
-        if '+utils' in self.spec: # build Utils, all but skipped
-            for dname in [f[0] for f in os.walk("Util")]:
-                if dname not in skipped_batch_utils:
-                    with working_dir(dname):
-                        if (os.access('Makefile', os.F_OK)):
-                            make(parallel=False)
+        # Libs missing/not buildable yet:
+        # libfdict for TBtrans
+        # FFTW3 for STM
+        if '+utils' in self.spec: # build Utils
+            # The following is a workaround to suppress inner `make`-invocations stderr
+            # that outputs garbage into tty that Spack cannot parse.
+            with working_dir("Util"):
+                with open('build_spack.sh', 'w') as build_proxy:
+                    build_proxy.write('#!/bin/bash\n./build_all.sh >/dev/null 2>/dev/null\n')
+                st = os.stat('build_spack.sh')
+                os.chmod('build_spack.sh', st.st_mode | stat.S_IEXEC)
+                sh("./build_spack.sh")
 
 
     def install(self, spec, prefix):
