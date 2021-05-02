@@ -7,6 +7,7 @@
 
 from spack import *
 import os
+import stat
 
 
 class Siesta(MakefilePackage):
@@ -25,6 +26,7 @@ class Siesta(MakefilePackage):
     version('psml',  branch='psml-support')
 
     variant('mpi', default=True, description='Build parallel version with MPI.')
+    variant('flook', default=True, description='Build SIESTA with flook support to interface with Lua.')
     variant('utils', default=False, description='Build the utilities suit bundled with SIESTA (./Util dir).')
     # variant('psml', default=True,
     #         description='Build with support for pseudopotentials in PSML format.')
@@ -44,10 +46,14 @@ class Siesta(MakefilePackage):
     depends_on('hdf5 +fortran +hl')
     depends_on('netcdf-c +dap')
     depends_on('netcdf-fortran')
+    depends_on('fftw@3:')
+    depends_on('elsi@2.7:+enable_pexsi')
 
     depends_on('libxc@3.0.0') # NOTE: hard-wired libxc version, Siesta does not link against newer ones yet
     depends_on('libgridxc +libxc ~mpi', when='~mpi')
     depends_on('libgridxc +libxc +mpi', when='+mpi')
+
+    depends_on('flook', when='+flook')
 
     depends_on('xmlf90',  when='@master,psml')
     depends_on('libpsml', when='@master,psml')
@@ -73,6 +79,8 @@ class Siesta(MakefilePackage):
         fppflags = ['-DGRID_DP', '-DCDF', '-DNCDF', '-DNCDF_4']
         if '+mpi' in self.spec:
             fppflags.append('-DMPI')
+        if '+flook' in self.spec:
+            fppflags.append('-DSIESTA__FLOOK')
 
         return ' '.join(fppflags)
 
@@ -120,6 +128,9 @@ class Siesta(MakefilePackage):
             conf.append('include {0}/share/org.siesta-project/gridxc_dp.mk'.format(
                 spec['libgridxc'].prefix))
 
+        if "+flook" in spec:
+            conf.append('FLOOK_LIBS=-L/{0}/lib -lflookall -ldl'.format(spec['flook'].prefix))
+
         conf.append('FPPFLAGS = $(DEFS_PREFIX)-DFC_HAVE_ABORT')
         conf.append('FPPFLAGS+= {0}'.format(self.final_fppflags_string))
 
@@ -132,7 +143,7 @@ class Siesta(MakefilePackage):
             spec['zlib'].libs.ld_flags,
         ])))
 
-        conf.append('LIBS = $(NETCDF_LIBS) -lpthread $(SCALAPACK_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)')
+        conf.append('LIBS = $(NETCDF_LIBS) -lpthread $(SCALAPACK_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLOOK_LIBS)')
 
         if '+mpi' in spec:
             conf.append('MPI_INTERFACE=libmpi_f90.a')
@@ -164,6 +175,11 @@ class Siesta(MakefilePackage):
         archmake.filter('^WITH_PSML=.*',   'WITH_PSML=1')
         archmake.filter('^WITH_GRIDXC=.*', 'WITH_GRIDXC=1')
 
+        archmake.filter('^WITH_ELSI=.*', 'WITH_ELSI=1')
+
+        if '+flook' in spec:
+            archmake.filter('^WITH_FLOOK=.*', 'WITH_FLOOK=1')
+
         if '+mpi' not in spec:
             archmake.filter('^WITH_MPI=1', 'WITH_MPI=')
 
@@ -180,6 +196,16 @@ class Siesta(MakefilePackage):
                         'GRIDXC_ROOT={0}\nLIBXC_ROOT={1}'.format(
                         spec['libgridxc'].prefix, spec['libxc'].prefix
                         ))      #NOTE: older gridxc installation requires LIBXC_ROOT specified
+
+        # Linking ELSI with PEXSI
+        #FIXME: doesnt work. PEXSI invocations expect -DSIESTA__PEXSI flag,
+        # and that doesn't compile due to missing `f_interface.f90`.
+        archmake.filter('^#ELSI_ROOT=', 'ELSI_ROOT={0}'.format(spec['elsi'].prefix))
+        archmake.filter('^#LIBS_CPLUS=', 'LIBS_CPLUS=')
+        # archmake.filter('-DSIESTA__ELSI ', '-DSIESTA__ELSI -DSIESTA__PEXSI ')
+
+        if "+flook" in spec:
+            archmake.filter('^#FLOOK_ROOT=', 'FLOOK_ROOT={0}'.format(spec['flook'].prefix))
 
         archmake.filter('^#NETCDF_ROOT=.*',
                         'NETCDF_ROOT={0}'.format(spec['netcdf-c'].prefix))
@@ -200,6 +226,7 @@ class Siesta(MakefilePackage):
 
         archmake.filter('^#LAPACK_LIBS=.*',
                         'LAPACK_LIBS={0}'.format(spec['lapack'].libs.ld_flags))
+        archmake.filter('^#FFTW_ROOT=.*', 'FFTW_ROOT={0}'.format(spec['fftw'].prefix))
 
         if '+mpi' in spec:
             archmake.filter('^#FC_PARALLEL=.*', 'FC_PARALLEL={0}'.format(env['MPIF90']))
@@ -209,9 +236,16 @@ class Siesta(MakefilePackage):
         archmake.filter('^#FFLAGS =.*', 'FFLAGS= {0}'.format(self.final_fflags_string))
         archmake.filter('^#FFLAGS_DEBUG=.*', 'FFLAGS_DEBUG= -g -O0')
 
+        archmake.filter('^#RANLIB=.*', 'RANLIB={0}'.format('ranlib' if which('ranlib') else 'echo'))
+
 
     def edit(self, spec, prefix):
-        sh = which('sh')
+        sh = which('bash')
+
+        with open('SIESTA.release', 'w') as siesta_release:
+            # Outputs version marker to bypass `SIESTA_vgen.sh` check
+            siesta_release.write('spack_{0}_{1}'.format(self.version[0], self.siesta_arch_string))
+
         with working_dir('Obj'):
             sh('../Src/obj_setup.sh')
             # Mostly for reference than for practical reasons the launchpad public
@@ -229,26 +263,23 @@ class Siesta(MakefilePackage):
 
 
     def build(self, spec, prefix):
+        sh = which('sh')  # erase
+
         with working_dir('Obj'):
             make()              # build Siesta
 
-        # These utils fail to build yet, mostly due to Makefile-s (mis)formatting:
-        #FIXME: skipping builds of utilities by default
-        skipped_batch_utils = [
-            'Util/MPI_test',      # needs patch
-            'Util/MPI_test/MPI',  # needs patch
-            'Util/TS/TBtrans',    # needs patch
-            'Util/TS/tshs2tshs',  # needs patch
-            'Util/STM/ol-stm/Src', # needs FFTW3
-            'Util/STM/ol-stm', # needs FFTW3
-        ]
-
-        if '+utils' in self.spec: # build Utils, all but skipped
-            for dname in [f[0] for f in os.walk("Util")]:
-                if dname not in skipped_batch_utils:
-                    with working_dir(dname):
-                        if (os.access('Makefile', os.F_OK)):
-                            make(parallel=False)
+        # Libs missing/not buildable yet:
+        # libfdict for TBtrans
+        # FFTW3 for STM
+        if '+utils' in self.spec: # build Utils
+            # The following is a workaround to suppress inner `make`-invocations stderr
+            # that outputs garbage into tty that Spack cannot parse.
+            with working_dir("Util"):
+                with open('build_spack.sh', 'w') as build_proxy:
+                    build_proxy.write('#!/bin/bash\n./build_all.sh >/dev/null 2>/dev/null\n')
+                st = os.stat('build_spack.sh')
+                os.chmod('build_spack.sh', st.st_mode | stat.S_IEXEC)
+                sh("./build_spack.sh")
 
 
     def install(self, spec, prefix):
