@@ -46,6 +46,7 @@ class Siesta(MakefilePackage):
     depends_on('hdf5 +fortran +hl')
     depends_on('netcdf-c +dap')
     depends_on('netcdf-fortran')
+    depends_on('fftw@3:')
 
     depends_on('libxc@3.0.0') # NOTE: hard-wired libxc version, Siesta does not link against newer ones yet
     depends_on('libgridxc +libxc ~mpi', when='~mpi')
@@ -125,7 +126,7 @@ class Siesta(MakefilePackage):
         else:           # FIXME: proper check for versions higher than 9.0
             conf.append('include {0}/share/org.siesta-project/gridxc_dp.mk'.format(
                 spec['libgridxc'].prefix))
-        
+
         if "+flook" in spec:
             conf.append('FLOOK_LIBS=-L/{0}/lib -lflookall -ldl'.format(spec['flook'].prefix))
 
@@ -214,6 +215,7 @@ class Siesta(MakefilePackage):
 
         archmake.filter('^#LAPACK_LIBS=.*',
                         'LAPACK_LIBS={0}'.format(spec['lapack'].libs.ld_flags))
+        archmake.filter('^#FFTW_ROOT=.*', 'FFTW_ROOT={0}'.format(spec['fftw'].prefix))
 
         if '+mpi' in spec:
             archmake.filter('^#FC_PARALLEL=.*', 'FC_PARALLEL={0}'.format(env['MPIF90']))
@@ -273,4 +275,3 @@ class Siesta(MakefilePackage):
                     fname = join_path(root, fname)
                     if os.access(fname, os.X_OK):
                         install(fname, prefix.bin)
-
