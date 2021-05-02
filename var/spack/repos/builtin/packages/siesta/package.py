@@ -233,7 +233,7 @@ class Siesta(MakefilePackage):
 
         with open('SIESTA.release', 'w') as siesta_release:
             # Outputs version marker to bypass `SIESTA_vgen.sh` check
-            siesta_release.write('spack_{0}'.format(self.version[0]))
+            siesta_release.write('spack_{0}_{1}'.format(self.version[0], self.siesta_arch_string))
 
         with working_dir('Obj'):
             sh('../Src/obj_setup.sh')
