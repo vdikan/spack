@@ -225,9 +225,16 @@ class Siesta(MakefilePackage):
         archmake.filter('^#FFLAGS =.*', 'FFLAGS= {0}'.format(self.final_fflags_string))
         archmake.filter('^#FFLAGS_DEBUG=.*', 'FFLAGS_DEBUG= -g -O0')
 
+        archmake.filter('^#RANLIB=.*', 'RANLIB={0}'.format('ranlib' if which('ranlib') else 'echo'))
+
 
     def edit(self, spec, prefix):
         sh = which('bash')
+
+        with open('SIESTA.release', 'w') as siesta_release:
+            # Outputs version marker to bypass `SIESTA_vgen.sh` check
+            siesta_release.write('spack_{0}'.format(self.version[0]))
+
         with working_dir('Obj'):
             sh('../Src/obj_setup.sh')
             # Mostly for reference than for practical reasons the launchpad public
