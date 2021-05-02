@@ -47,6 +47,7 @@ class Siesta(MakefilePackage):
     depends_on('netcdf-c +dap')
     depends_on('netcdf-fortran')
     depends_on('fftw@3:')
+    depends_on('elsi@2.7:+enable_pexsi')
 
     depends_on('libxc@3.0.0') # NOTE: hard-wired libxc version, Siesta does not link against newer ones yet
     depends_on('libgridxc +libxc ~mpi', when='~mpi')
@@ -174,6 +175,8 @@ class Siesta(MakefilePackage):
         archmake.filter('^WITH_PSML=.*',   'WITH_PSML=1')
         archmake.filter('^WITH_GRIDXC=.*', 'WITH_GRIDXC=1')
 
+        archmake.filter('^WITH_ELSI=.*', 'WITH_ELSI=1')
+
         if '+flook' in spec:
             archmake.filter('^WITH_FLOOK=.*', 'WITH_FLOOK=1')
 
@@ -193,6 +196,14 @@ class Siesta(MakefilePackage):
                         'GRIDXC_ROOT={0}\nLIBXC_ROOT={1}'.format(
                         spec['libgridxc'].prefix, spec['libxc'].prefix
                         ))      #NOTE: older gridxc installation requires LIBXC_ROOT specified
+
+        # Linking ELSI with PEXSI
+        #FIXME: doesnt work. PEXSI invocations expect -DSIESTA__PEXSI flag,
+        # and that doesn't compile due to missing `f_interface.f90`.
+        archmake.filter('^#ELSI_ROOT=', 'ELSI_ROOT={0}'.format(spec['elsi'].prefix))
+        archmake.filter('^#LIBS_CPLUS=', 'LIBS_CPLUS=')
+        # archmake.filter('-DSIESTA__ELSI ', '-DSIESTA__ELSI -DSIESTA__PEXSI ')
+
         if "+flook" in spec:
             archmake.filter('^#FLOOK_ROOT=', 'FLOOK_ROOT={0}'.format(spec['flook'].prefix))
 
