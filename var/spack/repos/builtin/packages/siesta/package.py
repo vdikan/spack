@@ -296,5 +296,6 @@ class Siesta(MakefilePackage):
             for root, _, files in os.walk('Util'):
                 for fname in files:
                     fname = join_path(root, fname)
-                    if os.access(fname, os.X_OK):
+                    if (os.access(fname, os.X_OK) and
+                        (not fname.lower().endswith(('.sh')))):
                         install(fname, prefix.bin)
