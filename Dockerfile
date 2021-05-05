@@ -31,7 +31,7 @@ RUN apt-get -yqq update \
         iproute2 \
         lmod \
         locales \
-        lua5.3 \
+        libreadline-dev \
         lua-posix \
         make \
         python3 \
