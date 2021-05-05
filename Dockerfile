@@ -20,9 +20,11 @@ ENV DOCKERFILE_BASE=ubuntu            \
 RUN apt-get -yqq update \
  && apt-get -yqq install --no-install-recommends \
         build-essential \
+        bison \
         ca-certificates \
         curl \
         file \
+        flex \
         g++ \
         gcc \
         gfortran \
