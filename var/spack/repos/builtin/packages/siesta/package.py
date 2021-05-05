@@ -21,13 +21,15 @@ class Siesta(MakefilePackage):
 
     version('4.1-b4', sha256='19fa19a23adefb9741a436c6b5dbbdc0f57fb66876883f8f9f6695dfe7574fe3',
             url='https://launchpad.net/siesta/4.1/4.1-b4/+download/siesta-4.1-b4.tar.gz')
+    version('elsi', sha256='4c7b2edae2a7c9ca89b53731d87e925863b117ae460296dbd1198f75d8d47a8d',
+            url='https://gitlab.com/garalb/siesta/-/archive/trunk-elsi-dm/siesta-trunk-elsi-dm.tar.gz')
 
     version('master',  branch='master')
     version('psml',  branch='psml-support')
 
     variant('mpi', default=True, description='Build parallel version with MPI.')
     variant('flook', default=True, description='Build SIESTA with flook support to interface with Lua.')
-    variant('utils', default=False, description='Build the utilities suit bundled with SIESTA (./Util dir).')
+    variant('utils', default=True, description='Build the utilities suit bundled with SIESTA (./Util dir).')
     # variant('psml', default=True,
     #         description='Build with support for pseudopotentials in PSML format.')
 
@@ -55,8 +57,8 @@ class Siesta(MakefilePackage):
 
     depends_on('flook', when='+flook')
 
-    depends_on('xmlf90',  when='@master,psml')
-    depends_on('libpsml', when='@master,psml')
+    depends_on('xmlf90',  when='@master,psml,elsi')
+    depends_on('libpsml', when='@master,psml,elsi')
 
     phases = ['edit', 'build', 'install']
 
@@ -175,7 +177,8 @@ class Siesta(MakefilePackage):
         archmake.filter('^WITH_PSML=.*',   'WITH_PSML=1')
         archmake.filter('^WITH_GRIDXC=.*', 'WITH_GRIDXC=1')
 
-        archmake.filter('^WITH_ELSI=.*', 'WITH_ELSI=1')
+        if self.spec.satisfies('@elsi'):
+            archmake.filter('^WITH_ELSI=.*', 'WITH_ELSI=1')
 
         if '+flook' in spec:
             archmake.filter('^WITH_FLOOK=.*', 'WITH_FLOOK=1')
@@ -257,7 +260,9 @@ class Siesta(MakefilePackage):
                         archmake.write('{0}\n'.format(line))
             # In case of a modern version, e.g. obtained from Git, the `master-raw`
             # makefile sample is copied and regex-filtered instead:
-            elif (self.spec.satisfies('@master') or self.spec.satisfies('@psml')):
+            elif (self.spec.satisfies('@master') or
+                  self.spec.satisfies('@psml') or
+                  self.spec.satisfies('@elsi')):
                 copy('./ARCH-EXPERIMENTAL/master-raw.make', './arch.make')
                 self.filter_archmake(FileFilter('./arch.make'))
 
